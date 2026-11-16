@@ -139,7 +139,10 @@ def create_agent(context_id: str) -> Agent:
 
 
 # El servidor publica la agent card en /.well-known/agent-card.json
-RUNTIME_ARN = "arn:aws:bedrock-agentcore:us-east-2:289076681196:runtime/tripplaner_FlightsAgent-NIrzy8HGru"
+RUNTIME_ARN = os.environ.get(
+    "FLIGHTS_RUNTIME_ARN",
+    "arn:aws:bedrock-agentcore:us-east-2:289076681196:runtime/tripplaner_FlightsAgent-NIrzy8HGru",
+)
 DEFAULT_URL = (
     "https://bedrock-agentcore.us-east-2.amazonaws.com/runtimes/"
     f"{quote(RUNTIME_ARN, safe='')}/invocations/"
@@ -155,5 +158,17 @@ a2a_server = A2AServer(
     port=9000,
 )
 
+def build_app():
+    """App A2A de Strands + GET /ping (health check que exige AgentCore Runtime)."""
+    from starlette.responses import JSONResponse
+    from starlette.routing import Route
+
+    app = a2a_server.to_starlette_app()
+    app.router.routes.insert(0, Route("/ping", lambda request: JSONResponse({"status": "Healthy"}), methods=["GET"]))
+    return app
+
+
 if __name__ == "__main__":
-    a2a_server.serve()
+    import uvicorn
+
+    uvicorn.run(build_app(), host="0.0.0.0", port=9000)

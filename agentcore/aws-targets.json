@@ -1,8 +1,14 @@
 [
   {
     "name": "default",
-    "description": "Default target (us-east-2)",
+    "description": "Default target (us-east-2) - despliegue original del taller",
     "account": "289076681196",
+    "region": "us-east-2"
+  },
+  {
+    "name": "final",
+    "description": "Trabajo final - plataforma web (us-east-2)",
+    "account": "542489916996",
     "region": "us-east-2"
   }
 ]

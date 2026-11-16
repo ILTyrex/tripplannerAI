@@ -1,5 +1,7 @@
+import asyncio
 import os
 import re
+import sys
 import unicodedata
 from contextvars import ContextVar
 from collections import OrderedDict
@@ -26,6 +28,10 @@ from bedrock_agentcore.memory.integrations.strands.session_manager import (
 from strands.agent.a2a_agent import A2AAgent
 from a2a.client import ClientConfig, ClientFactory
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import ui_events as ui  # noqa: E402
+from business_tools import BUSINESS_TOOLS  # noqa: E402
+
 app = BedrockAgentCoreApp()
 log = app.logger
 flight_search_results: ContextVar[list[str] | None] = ContextVar(
@@ -34,7 +40,7 @@ flight_search_results: ContextVar[list[str] | None] = ContextVar(
 )
 
 REGION = os.environ.get("AWS_REGION", "us-east-2")
-MODEL_ID = "us.amazon.nova-lite-v1:0"
+MODEL_ID = os.environ.get("ORCHESTRATOR_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
 
 # Vacío -> el agente sigue funcionando sin memoria gestionada.
 MEMORY_ID = os.environ.get("TRIP_MEMORY_ID") or None
@@ -106,7 +112,13 @@ async def _invoke_remote_agent(arn: str, request: str) -> str:
 
 @tool
 async def ask_flights(request: str) -> str:
-    """Delega en el Flights Agent la búsqueda de vuelos."""
+    """Delega en el Flight Agent (A2A, MCP de vuelos) la búsqueda de vuelos de UN trayecto.
+
+    Args:
+        request: solicitud en español con ciudad de origen, ciudad de destino y fecha YYYY-MM-DD,
+            p.ej. "Busca vuelos de Bogotá a Cartagena para el 2026-12-04".
+    """
+    ui.status("Flight Agent consultando vuelos (MCP de vuelos)…")
     try:
         response = await _invoke_remote_agent(FLIGHTS_ARN, request)
     except Exception as exc:
@@ -115,17 +127,28 @@ async def ask_flights(request: str) -> str:
     results = flight_search_results.get()
     if results is not None:
         results.append(response)
+    block = ui.parse_flights(response)
+    block["request"] = request
+    ui.ui(block)
     return response
 
 
 @tool
 async def ask_weather(request: str) -> str:
-    """Delega en el Weather Agent la consulta de clima."""
+    """Delega en el Weather Agent (A2A, MCP de clima) el pronóstico de una ciudad y rango de fechas.
+
+    Args:
+        request: solicitud en español con la ciudad y la fecha inicial y final YYYY-MM-DD,
+            p.ej. "Clima en Cartagena del 2026-12-04 al 2026-12-07".
+    """
+    ui.status("Weather Agent consultando el clima (MCP de clima)…")
     try:
-        return await _invoke_remote_agent(WEATHER_ARN, request)
+        response = await _invoke_remote_agent(WEATHER_ARN, request)
     except Exception:
         log.exception("ask_weather falló para la solicitud %r", request)
-        raise
+        response = '{"error": "No se pudo consultar el clima en este momento.", "days": []}'
+    ui.ui(ui.parse_weather(response))
+    return response
 
 
 DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
@@ -482,7 +505,58 @@ def _fecha_legible(d) -> str:
 
 
 def build_system_prompt() -> str:
-    """Prompt con la fecha de hoy (hora de Colombia) para resolver 'este fin de semana'."""
+    """Prompt del Orchestrator de la plataforma web (vuelos, clima, viajes, itinerarios, reservas)."""
+    today = datetime.now(timezone(timedelta(hours=-5))).date()
+    saturday = today + timedelta(days=(5 - today.weekday()) % 7)
+    default_start = today + timedelta(days=14)
+    while default_start.weekday() != 3:  # jueves
+        default_start += timedelta(days=1)
+    return f"""Eres TripPlanner AI, el Orchestrator Agent de una plataforma web para planificar y gestionar viajes.
+Coordinas especialistas y herramientas; tú decides qué usar:
+- ask_flights → Flight Agent (consulta vuelos reales vía MCP de vuelos). Un trayecto por llamada.
+- ask_weather → Weather Agent (pronóstico vía MCP de clima). Una llamada por ciudad con el rango completo de fechas.
+- Tools de negocio (respaldadas por AWS Lambda + DynamoDB): create_trip, get_trips, get_trip_details, update_trip,
+  create_itinerary, update_itinerary, create_reservation, get_reservations, update_reservation,
+  get_user_preferences, save_user_preferences.
+
+FECHAS: hoy es {_fecha_legible(today)}. Próximo sábado: {_fecha_legible(saturday)}.
+Si el usuario no da fechas para unas vacaciones, propone como salida {_fecha_legible(default_start)} y calcula el
+regreso con la duración pedida (4 días = salida + 3 días). Dilo explícitamente para que pueda cambiarlas.
+Nunca le pidas la fecha al usuario si puedes proponerla. Usa YYYY-MM-DD al llamar herramientas.
+
+CÓMO TRABAJAR:
+1. Planificar vacaciones (p.ej. "4 días en Cartagena desde Bogotá con dos personas más, presupuesto 5 millones"):
+   - Viajeros = el usuario + acompañantes ("con dos personas más" = 3). Presupuesto en COP si dice "millones de pesos".
+   - Consulta get_user_preferences para personalizar.
+   - En el MISMO turno llama ask_flights para la ida, ask_flights para el regreso y ask_weather para el destino y todo el rango.
+     Pasa las ciudades por su nombre (no inventes códigos IATA).
+   - Resume: vuelo más barato de ida y de regreso, costo estimado de vuelos para TODOS los viajeros (precio × viajeros),
+     comparación con el presupuesto (los vuelos suelen venir en USD: si conviertes a COP usa ~4.000 COP/USD y di que es aproximado),
+     clima esperado y una propuesta breve de actividades. Ofrece crear el viaje con su itinerario.
+2. Crear viaje: cuando el usuario lo pida o confirme, llama create_trip con lo conversado (origen, destino, fechas,
+   viajeros, presupuesto, moneda, preferencias). Inmediatamente después genera el itinerario con create_itinerary:
+   un día por cada día del viaje, 3-5 actividades por día con hora HH:MM, título, descripción breve, lugar, categoría y
+   costo estimado para el grupo en la moneda del viaje. Tiene en cuenta: día 1 llegada y último día regreso (según la hora
+   del vuelo), el clima (si hay lluvia, actividades bajo techo), las preferencias y el presupuesto.
+3. Reservas (simuladas, sin pagos): usa create_reservation con type FLIGHT (vuelo elegido: título "Vuelo <origen> → <destino> <código>",
+   provider = aerolínea, time = salida, price = precio total para todos los viajeros, currency del vuelo), HOTEL o ACTIVITY.
+   Estado SIMULADA por defecto (PENDIENTE solo si el usuario lo pide). Nunca CONFIRMADA. Si el usuario no eligió vuelo,
+   reserva el más barato y dilo. NUNCA pidas ni aceptes números de tarjeta, CVV ni datos de pago.
+4. Recuperar información: usa get_trips, get_trip_details y get_reservations. Nunca inventes IDs: obténlos de las herramientas.
+   Si hay varios viajes posibles y no es claro cuál, pregunta.
+5. Preferencias persistentes (gustos, restricciones, aerolíneas, presupuesto habitual): guárdalas con save_user_preferences.
+6. La memoria conversacional te da contexto; la fuente de verdad de viajes, itinerarios y reservas son las Tools (DynamoDB).
+
+PRESENTACIÓN (Agent-Driven UI): la interfaz muestra automáticamente como tarjetas los resultados de las herramientas
+(vuelos, clima, viajes, itinerarios, reservas). NO repitas tablas ni listas completas de vuelos, clima o actividades.
+Responde en español, cálido y conciso (máximo ~8 líneas), con markdown ligero (negritas, viñetas cortas).
+Destaca lo importante, los IDs no son necesarios salvo que el usuario los pida, y termina con el siguiente paso sugerido.
+Usa solo datos devueltos por las herramientas: no inventes vuelos, precios ni clima. Si una herramienta falla, dilo
+brevemente y continúa con el resto. Sin etiquetas <thinking>."""
+
+
+def build_flight_plan_prompt() -> str:
+    """Prompt original (texto plano IDA/REGRESO) del planificador de fin de semana."""
     today = datetime.now(timezone(timedelta(hours=-5))).date()
     saturday = today + timedelta(days=(5 - today.weekday()) % 7)
     sunday = saturday + timedelta(days=1)
@@ -611,7 +685,7 @@ class TagFilter:
         return "".join(out)
 
 
-tools = [ask_flights, ask_weather]
+tools = [ask_flights, ask_weather, *BUSINESS_TOOLS]
 
 
 def _build_session_manager(session_id: str, actor_id: str):
@@ -644,7 +718,7 @@ def agent_factory():
 
         agent_kwargs = {
             "name": "Trip Planner Orchestrator",
-            "model": BedrockModel(model_id=MODEL_ID, region_name=REGION),
+            "model": BedrockModel(model_id=MODEL_ID, region_name=REGION, max_tokens=8000, temperature=0.3),
             "system_prompt": build_system_prompt(),
             "tools": tools,
             "callback_handler": None,
@@ -712,8 +786,22 @@ def _extract_prompt(payload: dict):
     return prompt
 
 
+def _resolve_user(context) -> ui.UserContext | None:
+    """Usuario autenticado a partir del JWT de Cognito validado por AgentCore (CUSTOM_JWT)."""
+    headers = getattr(context, "request_headers", None) or {}
+    lowered = {str(k).lower(): v for k, v in headers.items()}
+    claims = ui.decode_jwt_claims(lowered.get("authorization"))
+    sub = claims.get("sub")
+    if isinstance(sub, str) and re.fullmatch(r"[A-Za-z0-9-]{8,64}", sub):
+        return ui.UserContext(user_id=sub, username=str(claims.get("username", "")))
+    return None
+
+
 def _resolve_actor_id(payload, context) -> str:
-    """Identidad del usuario: payload['actor_id'] o header custom (sin distinguir mayúsculas)."""
+    """Identidad del usuario: JWT (sub), payload['actor_id'] o header custom."""
+    user = _resolve_user(context)
+    if user is not None:
+        return user.user_id
     if isinstance(payload, dict) and isinstance(payload.get("actor_id"), str) and payload["actor_id"]:
         return payload["actor_id"]
     headers = getattr(context, "request_headers", None) or {}
@@ -725,57 +813,85 @@ def _resolve_actor_id(payload, context) -> str:
     return "default-user"
 
 
-@app.entrypoint
-async def invoke(payload, context):
-    log.info("Invoking Trip Planner Orchestrator...")
-
-    prompt = _extract_prompt(payload)
-    direct_query = parse_direct_flight_query(prompt)
-    if direct_query is not None:
-        origin, destination, travel_date = direct_query
-        response = await _direct_flight_response(
-            origin,
-            destination,
-            travel_date,
-        )
-        async for event in _stream_text_response(response):
-            yield event
-        return
-
-    session_id = getattr(context, "session_id", "default-session")
-    actor_id = _resolve_actor_id(payload, context)
-    log.info(f"session_id={session_id} actor_id={actor_id}")
-    agent = get_or_create_agent(session_id, actor_id)
-
-    search_results: list[str] = []
-    token = flight_search_results.set(search_results)
+async def _run_agent(agent, prompt, queue: asyncio.Queue) -> None:
+    """Ejecuta el agente y publica texto en la cola; las Tools publican status/ui en la misma cola."""
+    tag_filter = TagFilter()
+    wrote_text = False
     try:
-        tag_filter = TagFilter()
-        response_parts = []
         async for event in agent.stream_async(prompt):
             if not isinstance(event, dict) or "event" not in event:
                 continue
             ev = event["event"]
-            cbs = ev.get("contentBlockStart")
-            if cbs is not None and not cbs.get("start"):
-                continue
-
             delta = ev.get("contentBlockDelta")
             if delta is not None and "text" in delta.get("delta", {}):
                 clean = tag_filter.feed(delta["delta"]["text"])
                 if clean:
-                    response_parts.append(clean)
+                    queue.put_nowait({"type": "text", "text": clean})
+                    wrote_text = True
             elif "contentBlockStop" in ev:
                 rest = tag_filter.feed("", final=True)
                 if rest:
-                    response_parts.append(rest)
+                    queue.put_nowait({"type": "text", "text": rest})
+                if wrote_text:
+                    queue.put_nowait({"type": "text", "text": "\n\n"})
+                    wrote_text = False
                 tag_filter = TagFilter()
-        response_parts.append(tag_filter.feed("", final=True))
-        response = normalize_trip_response("".join(response_parts), search_results)
+            elif ev.get("contentBlockStart", {}).get("start", {}).get("toolUse"):
+                name = ev["contentBlockStart"]["start"]["toolUse"].get("name", "")
+                queue.put_nowait({"type": "tool", "name": name})
+    except Exception:
+        log.exception("Error ejecutando el Orchestrator")
+        queue.put_nowait({
+            "type": "error",
+            "text": "Ocurrió un problema procesando tu solicitud. Intenta de nuevo en unos segundos.",
+        })
     finally:
-        flight_search_results.reset(token)
-    async for event in _stream_text_response(response):
-        yield event
+        queue.put_nowait(None)
+
+
+@app.entrypoint
+async def invoke(payload, context):
+    """HTTP streaming (SSE) hacia el frontend.
+
+    Eventos: status | tool | text | ui | data_changed | error | done.
+    """
+    log.info("Invoking Trip Planner Orchestrator...")
+    try:
+        prompt = _extract_prompt(payload)
+    except ValueError as exc:
+        yield {"type": "error", "text": str(exc)}
+        return
+    if isinstance(prompt, str) and not prompt.strip():
+        yield {"type": "error", "text": "El mensaje está vacío."}
+        return
+    if isinstance(prompt, str) and len(prompt) > 4000:
+        yield {"type": "error", "text": "El mensaje es demasiado largo (máximo 4000 caracteres)."}
+        return
+
+    session_id = getattr(context, "session_id", None) or "default-session"
+    user = _resolve_user(context)
+    actor_id = user.user_id if user else _resolve_actor_id(payload, context)
+    log.info(f"session_id={session_id} actor_id={actor_id} authenticated={user is not None}")
+    agent = get_or_create_agent(session_id, actor_id)
+
+    queue: asyncio.Queue = asyncio.Queue()
+    user_token = ui.current_user.set(user)
+    queue_token = ui.event_queue.set(queue)
+    search_token = flight_search_results.set([])
+    try:
+        yield {"type": "status", "text": "El Orchestrator está interpretando tu solicitud…"}
+        task = asyncio.create_task(_run_agent(agent, prompt, queue))
+        while True:
+            item = await queue.get()
+            if item is None:
+                break
+            yield item
+        await task
+        yield {"type": "done", "sessionId": session_id}
+    finally:
+        flight_search_results.reset(search_token)
+        ui.event_queue.reset(queue_token)
+        ui.current_user.reset(user_token)
 
 
 if __name__ == "__main__":
