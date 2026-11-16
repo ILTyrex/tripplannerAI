@@ -392,7 +392,7 @@ function renderFlights() {
     const prompt = `Busca vuelos de ${d.origin} a ${d.destination} para el ${d.date}` + (d.returnDate ? ` y el regreso de ${d.destination} a ${d.origin} el ${d.returnDate}` : "") + ". Compáralos brevemente (más barato y mejor horario). No consultes el clima.";
     askAgentForBlocks(prompt, $("#flight-results"), { types: ["flights"], label: "Flight Agent" });
   });
-  $("#flight-form").style.gridTemplateColumns = window.innerWidth < 760 ? "1fr" : "";
+  if (window.innerWidth < 760) $("#flight-form").style.gridTemplateColumns = "1fr";
 }
 
 // ------------------------------------------------------------------ 4. Clima
@@ -459,7 +459,7 @@ async function renderTripDetail(tripId) {
         ${trip.preferences?.length || trip.notes ? `<div class="card"><h3>Preferencias del viaje</h3><div class="chips">${(trip.preferences || []).map((p) => `<span class="chip" style="cursor:default">${esc(p)}</span>`).join("")}</div>${trip.notes ? `<p class="muted" style="margin-top:8px">${esc(trip.notes)}</p>` : ""}</div>` : ""}
       </div>
     </div>`);
-  if (window.innerWidth < 980) $("#trip-grid").style.gridTemplateColumns = "1fr";
+  if (window.innerWidth < 1100) $("#trip-grid").style.gridTemplateColumns = "1fr";
   view.dataset.tripId = trip.tripId;
   state.currentTrip = { trip, itinerary, reservations };
 }

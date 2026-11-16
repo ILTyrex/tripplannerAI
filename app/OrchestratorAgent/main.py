@@ -101,10 +101,23 @@ def make_remote_agent(arn: str, http_client: httpx.AsyncClient) -> A2AAgent:
         return A2AAgent(endpoint=endpoint, a2a_client_factory=ClientFactory(config))
 
 
+conversation_session: ContextVar[str | None] = ContextVar("conversation_session", default=None)
+
+
+def _specialist_session_headers(arn: str) -> dict:
+    """Reutiliza la misma sesión del especialista durante la conversación (microVM caliente)."""
+    session = conversation_session.get()
+    if not session:
+        return {}
+    suffix = "flights" if arn == FLIGHTS_ARN else "weather"
+    return {"X-Amzn-Bedrock-AgentCore-Runtime-Session-Id": f"{session}-{suffix}"[:100]}
+
+
 async def _invoke_remote_agent(arn: str, request: str) -> str:
     async with httpx.AsyncClient(
         auth=SigV4HttpxAuth(REGION),
-        timeout=httpx.Timeout(60.0),
+        timeout=httpx.Timeout(90.0),
+        headers=_specialist_session_headers(arn),
     ) as http_client:
         remote = make_remote_agent(arn, http_client)
         return str(await remote.invoke_async(request))
@@ -508,7 +521,8 @@ def build_system_prompt() -> str:
     """Prompt del Orchestrator de la plataforma web (vuelos, clima, viajes, itinerarios, reservas)."""
     today = datetime.now(timezone(timedelta(hours=-5))).date()
     saturday = today + timedelta(days=(5 - today.weekday()) % 7)
-    default_start = today + timedelta(days=14)
+    # Primer jueves a partir de 5 días: el viaje queda dentro del horizonte de pronóstico (16 días).
+    default_start = today + timedelta(days=5)
     while default_start.weekday() != 3:  # jueves
         default_start += timedelta(days=1)
     return f"""Eres TripPlanner AI, el Orchestrator Agent de una plataforma web para planificar y gestionar viajes.
@@ -531,7 +545,8 @@ CÓMO TRABAJAR:
    - En el MISMO turno llama ask_flights para la ida, ask_flights para el regreso y ask_weather para el destino y todo el rango.
      Pasa las ciudades por su nombre (no inventes códigos IATA).
    - Resume: vuelo más barato de ida y de regreso, costo estimado de vuelos para TODOS los viajeros (precio × viajeros),
-     comparación con el presupuesto (los vuelos suelen venir en USD: si conviertes a COP usa ~4.000 COP/USD y di que es aproximado),
+     comparación con el presupuesto (los vuelos suelen venir en USD: convierte SIEMPRE el total en USD a COP multiplicando
+     por 4.000 y di que es aproximado; ejemplo: 408 USD × 4.000 = 1.632.000 COP. Revisa la aritmética antes de responder),
      clima esperado y una propuesta breve de actividades. Ofrece crear el viaje con su itinerario.
 2. Crear viaje: cuando el usuario lo pida o confirme, llama create_trip con lo conversado (origen, destino, fechas,
    viajeros, presupuesto, moneda, preferencias). Inmediatamente después genera el itinerario con create_itinerary:
@@ -541,7 +556,7 @@ CÓMO TRABAJAR:
 3. Reservas (simuladas, sin pagos): usa create_reservation con type FLIGHT (vuelo elegido: título "Vuelo <origen> → <destino> <código>",
    provider = aerolínea, time = salida, price = precio total para todos los viajeros, currency del vuelo), HOTEL o ACTIVITY.
    Estado SIMULADA por defecto (PENDIENTE solo si el usuario lo pide). Nunca CONFIRMADA. Si el usuario no eligió vuelo,
-   reserva el más barato y dilo. NUNCA pidas ni aceptes números de tarjeta, CVV ni datos de pago.
+   reserva el más barato y dilo. Al informar, di "reserva registrada (simulada)", nunca "confirmada". NUNCA pidas ni aceptes números de tarjeta, CVV ni datos de pago.
 4. Recuperar información: usa get_trips, get_trip_details y get_reservations. Nunca inventes IDs: obténlos de las herramientas.
    Si hay varios viajes posibles y no es claro cuál, pregunta.
 5. Preferencias persistentes (gustos, restricciones, aerolíneas, presupuesto habitual): guárdalas con save_user_preferences.
@@ -878,6 +893,7 @@ async def invoke(payload, context):
     user_token = ui.current_user.set(user)
     queue_token = ui.event_queue.set(queue)
     search_token = flight_search_results.set([])
+    session_token = conversation_session.set(session_id if len(session_id) >= 33 else None)
     try:
         yield {"type": "status", "text": "El Orchestrator está interpretando tu solicitud…"}
         task = asyncio.create_task(_run_agent(agent, prompt, queue))
@@ -889,6 +905,7 @@ async def invoke(payload, context):
         await task
         yield {"type": "done", "sessionId": session_id}
     finally:
+        conversation_session.reset(session_token)
         flight_search_results.reset(search_token)
         ui.event_queue.reset(queue_token)
         ui.current_user.reset(user_token)

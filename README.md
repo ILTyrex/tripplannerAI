@@ -13,6 +13,17 @@ para planificar y gestionar viajes, sobre una arquitectura distribuida en AWS.
 
 ![Arquitectura](docs/arquitectura.svg)
 
+## Despliegue actual (us-east-2)
+
+| Componente | Recurso |
+|---|---|
+| Frontend (CloudFront) | https://d3vmzvubx89wb6.cloudfront.net |
+| API Gateway | https://ci97awf0j6.execute-api.us-east-2.amazonaws.com/prod |
+| Orchestrator (AgentCore) | `tripplaner_OrchestratorAgent-Cj0BQ6H0du` (HTTP, CUSTOM_JWT) |
+| Flight / Weather Agent | `tripplaner_FlightsAgent-0gk2C36EvR` / `tripplaner_WeatherAgent-6TkRXe30Aa` (A2A) |
+| DynamoDB | `tripplanner-data` |
+| Stacks | `tripplanner-backend` (SAM) · `AgentCore-tripplaner-final` (AgentCore CDK) |
+
 ## Estructura
 
 ```

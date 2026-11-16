@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import sys
+import threading
 import time
 from datetime import date
 from pathlib import Path
@@ -34,10 +35,17 @@ MODEL_ID = os.environ.get("WEATHER_MODEL_ID", "us.amazon.nova-lite-v1:0")
 MCP_SERVER = Path(__file__).with_name("weather_mcp_server.py")
 
 _weather_mcp: MCPClient | None = None
+_mcp_lock = threading.Lock()
 
 
 def get_weather_mcp() -> MCPClient:
     """Sesión MCP (stdio) abierta una sola vez y reutilizada durante la vida del proceso."""
+    global _weather_mcp
+    with _mcp_lock:
+        return _start_mcp() if _weather_mcp is None else _weather_mcp
+
+
+def _start_mcp() -> MCPClient:
     global _weather_mcp
     if _weather_mcp is None:
         client = MCPClient(
@@ -162,7 +170,16 @@ def build_app():
     return app
 
 
+def _warm_mcp() -> None:
+    try:
+        get_weather_mcp()
+        logger.info("MCP de clima precalentado")
+    except Exception:
+        logger.exception("No se pudo precalentar el MCP de clima (se reintentará en la primera consulta)")
+
+
 if __name__ == "__main__":
     import uvicorn
 
+    threading.Thread(target=_warm_mcp, daemon=True).start()
     uvicorn.run(build_app(), host="0.0.0.0", port=9000)

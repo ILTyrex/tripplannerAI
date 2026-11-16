@@ -16,7 +16,13 @@
       "runtimeVersion": "PYTHON_3_14",
       "networkMode": "PUBLIC",
       "protocol": "A2A",
-      "description": "Flight Agent: especialista en vuelos (MCP de vuelos Skiplagged)."
+      "description": "Flight Agent: especialista en vuelos (MCP de vuelos Skiplagged).",
+      "envVars": [
+        {
+          "name": "FLIGHTS_RUNTIME_ARN",
+          "value": "arn:aws:bedrock-agentcore:us-east-2:542489916996:runtime/tripplaner_FlightsAgent-0gk2C36EvR"
+        }
+      ]
     },
     {
       "name": "WeatherAgent",
@@ -26,7 +32,13 @@
       "runtimeVersion": "PYTHON_3_14",
       "networkMode": "PUBLIC",
       "protocol": "A2A",
-      "description": "Weather Agent: especialista en clima (MCP de clima Open-Meteo)."
+      "description": "Weather Agent: especialista en clima (MCP de clima Open-Meteo).",
+      "envVars": [
+        {
+          "name": "WEATHER_RUNTIME_ARN",
+          "value": "arn:aws:bedrock-agentcore:us-east-2:542489916996:runtime/tripplaner_WeatherAgent-6TkRXe30Aa"
+        }
+      ]
     },
     {
       "name": "OrchestratorAgent",
@@ -56,6 +68,18 @@
         {
           "name": "USERS_FUNCTION",
           "value": "tripplanner-users"
+        },
+        {
+          "name": "FLIGHTS_AGENT_ARN",
+          "value": "arn:aws:bedrock-agentcore:us-east-2:542489916996:runtime/tripplaner_FlightsAgent-0gk2C36EvR"
+        },
+        {
+          "name": "WEATHER_AGENT_ARN",
+          "value": "arn:aws:bedrock-agentcore:us-east-2:542489916996:runtime/tripplaner_WeatherAgent-6TkRXe30Aa"
+        },
+        {
+          "name": "TRIP_MEMORY_ID",
+          "value": "tripplaner_TripPlannerMemory-Xk1G7GCxbv"
         }
       ],
       "description": "Orchestrator: interpreta, decide y coordina Flight/Weather Agents y Tools de negocio (Lambda).",
