@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 860" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#3b4b50"/></marker>
+    <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#0e7c86"/></marker>
+    <marker id="c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#c26a12"/></marker>
+    <style>
+      .box{fill:#fff;stroke:#c9d4d7;stroke-width:1.2}
+      .t{font-weight:700;fill:#13262b}
+      .s{fill:#5d7177;font-size:11.5px}
+      .h{font-weight:800;font-size:12px;letter-spacing:.06em}
+      .c1{fill:#fdf1e5;stroke:#f4a259}
+      .c2{fill:#e6f4f5;stroke:#0e7c86}
+      .ag{fill:#ffffff;stroke:#0e7c86;stroke-width:1.5}
+      .mcp{fill:#eef1fb;stroke:#4561c9}
+      .lam{fill:#fff7ee;stroke:#f4a259;stroke-width:1.4}
+      .db{fill:#e8f5ee;stroke:#2f9e6a;stroke-width:1.4}
+    </style>
+  </defs>
+  <rect width="1200" height="860" fill="#f7f9fa"/>
+  <text x="600" y="34" text-anchor="middle" font-size="20" font-weight="800" fill="#13262b">TripPlanner AI · Arquitectura general (dos canales independientes)</text>
+
+  <!-- Usuario y frontend -->
+  <rect x="510" y="56" width="180" height="40" rx="20" class="box"/>
+  <text x="600" y="81" text-anchor="middle" class="t">Usuario (navegador)</text>
+  <rect x="380" y="118" width="440" height="92" rx="12" class="box" stroke="#13262b"/>
+  <text x="600" y="142" text-anchor="middle" class="t">Frontend TripPlanner AI · HTML/CSS/JS (SPA)</text>
+  <text x="600" y="162" text-anchor="middle" class="s">Dashboard · Asistente · Vuelos · Clima · Mis viajes/Itinerarios · Reservas · Preferencias · Exportar PDF</text>
+  <text x="600" y="182" text-anchor="middle" class="s">Agent-Driven UI: tarjetas de vuelos, clima, viajes, agenda de itinerario y reservas con estado</text>
+  <text x="600" y="200" text-anchor="middle" class="s">Hosting: Amazon S3 (privado, OAC) + Amazon CloudFront (HTTPS, CDN)</text>
+  <line x1="600" y1="96" x2="600" y2="116" stroke="#3b4b50" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="900" y="118" width="250" height="92" rx="12" class="box" stroke-dasharray="5 4"/>
+  <text x="1025" y="142" text-anchor="middle" class="t">Amazon Cognito User Pool</text>
+  <text x="1025" y="162" text-anchor="middle" class="s">Registro / inicio de sesión</text>
+  <text x="1025" y="180" text-anchor="middle" class="s">Emite JWT (ID y access token)</text>
+  <text x="1025" y="198" text-anchor="middle" class="s">PreSignUp Lambda (auto-confirmación)</text>
+  <line x1="822" y1="164" x2="898" y2="164" stroke="#3b4b50" stroke-width="1.5" marker-end="url(#a)" marker-start="url(#a)"/>
+
+  <!-- Canal 1 -->
+  <rect x="30" y="240" width="500" height="560" rx="16" class="c1" stroke-width="1.5"/>
+  <text x="50" y="266" class="h" fill="#9a5a17">CANAL 1 · OPERACIONES DE NEGOCIO</text>
+  <text x="50" y="284" class="s">Listados, formularios y pantallas (crear/consultar/editar)</text>
+  <path d="M470 210 L470 230 L280 230 L280 304" fill="none" stroke="#c26a12" stroke-width="2" marker-end="url(#c)"/>
+  <text x="290" y="226" class="s" fill="#9a5a17">HTTPS · REST/JSON · Bearer ID token</text>
+
+  <rect x="80" y="306" width="400" height="74" rx="10" class="box"/>
+  <text x="280" y="330" text-anchor="middle" class="t">Amazon API Gateway (HTTP API, stage prod)</text>
+  <text x="280" y="349" text-anchor="middle" class="s">Autorizador JWT Cognito · CORS restringido</text>
+  <text x="280" y="366" text-anchor="middle" class="s">Throttling 20 rps / burst 50 · access logs</text>
+  <line x1="280" y1="380" x2="280" y2="410" stroke="#c26a12" stroke-width="2" marker-end="url(#c)"/>
+
+  <rect x="80" y="412" width="400" height="190" rx="10" class="box"/>
+  <text x="280" y="436" text-anchor="middle" class="t">AWS Lambda (Python 3.13 · validación + lógica)</text>
+  <rect x="100" y="450" width="175" height="60" rx="8" class="lam"/><text x="187" y="474" text-anchor="middle" class="t">tripplanner-trips</text><text x="187" y="493" text-anchor="middle" class="s">Create/Get/Update Trip</text>
+  <rect x="285" y="450" width="175" height="60" rx="8" class="lam"/><text x="372" y="474" text-anchor="middle" class="t">tripplanner-itineraries</text><text x="372" y="493" text-anchor="middle" class="s">Create/Update Itinerary</text>
+  <rect x="100" y="522" width="175" height="60" rx="8" class="lam"/><text x="187" y="546" text-anchor="middle" class="t">tripplanner-reservations</text><text x="187" y="565" text-anchor="middle" class="s">Create/Get/Update Res.</text>
+  <rect x="285" y="522" width="175" height="60" rx="8" class="lam"/><text x="372" y="546" text-anchor="middle" class="t">tripplanner-users</text><text x="372" y="565" text-anchor="middle" class="s">Perfil y preferencias</text>
+
+  <!-- Canal 2 -->
+  <rect x="560" y="240" width="610" height="420" rx="16" class="c2" stroke-width="1.5"/>
+  <text x="580" y="266" class="h" fill="#0a6670">CANAL 2 · INTERACCIÓN AGÉNTICA</text>
+  <text x="580" y="284" class="s">Chat y módulos de vuelos/clima · HTTP streaming (SSE) DIRECTO, sin API Gateway</text>
+  <path d="M730 210 L730 304" fill="none" stroke="#0e7c86" stroke-width="2" marker-end="url(#b)"/>
+  <text x="740" y="232" class="s" fill="#0a6670">HTTP streaming · Bearer access token</text>
+
+  <rect x="600" y="306" width="530" height="92" rx="10" class="ag"/>
+  <text x="865" y="328" text-anchor="middle" class="t">Amazon Bedrock AgentCore Runtime · Orchestrator Agent (Strands, HTTP)</text>
+  <text x="865" y="347" text-anchor="middle" class="s">Autorizador CUSTOM_JWT (Cognito, client_id) · identidad = sub del JWT</text>
+  <text x="865" y="365" text-anchor="middle" class="s">Interpreta · decide · coordina · eventos: status / text / ui / data_changed</text>
+  <text x="865" y="383" text-anchor="middle" class="s">Modelo: Claude Haiku 4.5 (Bedrock) · AgentCore Memory (preferencias, resúmenes, hechos)</text>
+
+  <rect x="600" y="430" width="160" height="70" rx="10" class="ag"/>
+  <text x="680" y="455" text-anchor="middle" class="t">Flight Agent</text><text x="680" y="473" text-anchor="middle" class="s">A2A · AgentCore</text><text x="680" y="489" text-anchor="middle" class="s">ask_flights</text>
+  <rect x="785" y="430" width="160" height="70" rx="10" class="ag"/>
+  <text x="865" y="455" text-anchor="middle" class="t">Weather Agent</text><text x="865" y="473" text-anchor="middle" class="s">A2A · AgentCore</text><text x="865" y="489" text-anchor="middle" class="s">ask_weather</text>
+  <rect x="970" y="430" width="160" height="70" rx="10" class="ag"/>
+  <text x="1050" y="455" text-anchor="middle" class="t">Tools de negocio</text><text x="1050" y="473" text-anchor="middle" class="s">CreateTrip, GetTrips…</text><text x="1050" y="489" text-anchor="middle" class="s">11 Tools → Lambda</text>
+  <line x1="680" y1="398" x2="680" y2="428" stroke="#0e7c86" stroke-width="1.8" marker-end="url(#b)"/>
+  <line x1="865" y1="398" x2="865" y2="428" stroke="#0e7c86" stroke-width="1.8" marker-end="url(#b)"/>
+  <line x1="1050" y1="398" x2="1050" y2="428" stroke="#0e7c86" stroke-width="1.8" marker-end="url(#b)"/>
+  <text x="772" y="418" text-anchor="middle" class="s">A2A + SigV4</text>
+
+  <rect x="600" y="530" width="160" height="62" rx="10" class="mcp"/>
+  <text x="680" y="554" text-anchor="middle" class="t">MCP de vuelos</text><text x="680" y="573" text-anchor="middle" class="s">Skiplagged (HTTP)</text>
+  <rect x="785" y="530" width="160" height="62" rx="10" class="mcp"/>
+  <text x="865" y="554" text-anchor="middle" class="t">MCP de clima</text><text x="865" y="573" text-anchor="middle" class="s">FastMCP stdio · Open-Meteo</text>
+  <line x1="680" y1="500" x2="680" y2="528" stroke="#4561c9" stroke-width="1.8" marker-end="url(#a)"/>
+  <line x1="865" y1="500" x2="865" y2="528" stroke="#4561c9" stroke-width="1.8" marker-end="url(#a)"/>
+  <text x="1050" y="560" text-anchor="middle" class="s">lambda:Invoke (IAM)</text>
+  <text x="1050" y="576" text-anchor="middle" class="s">userId = sub del JWT</text>
+  <path d="M1050 500 L1050 620 L540 620 L540 500 L482 500" fill="none" stroke="#0e7c86" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#b)"/>
+  <text x="790" y="640" text-anchor="middle" class="s" fill="#0a6670">Las Tools del agente reutilizan las mismas Lambdas del Canal 1</text>
+
+  <!-- DynamoDB -->
+  <rect x="80" y="630" width="400" height="150" rx="10" class="db"/>
+  <text x="280" y="655" text-anchor="middle" class="t">Amazon DynamoDB · tabla única tripplanner-data</text>
+  <text x="280" y="676" text-anchor="middle" class="s">PK = USER#&lt;sub&gt; · SK = PROFILE | PREFS | TRIP#id | ITIN#tripId | RES#id</text>
+  <g font-size="11.5" font-weight="700" fill="#1f6e4a">
+    <rect x="96" y="694" width="66" height="26" rx="6" fill="#fff" stroke="#2f9e6a"/><text x="129" y="711" text-anchor="middle">Usuarios</text>
+    <rect x="168" y="694" width="88" height="26" rx="6" fill="#fff" stroke="#2f9e6a"/><text x="212" y="711" text-anchor="middle">Preferencias</text>
+    <rect x="262" y="694" width="56" height="26" rx="6" fill="#fff" stroke="#2f9e6a"/><text x="290" y="711" text-anchor="middle">Viajes</text>
+    <rect x="324" y="694" width="72" height="26" rx="6" fill="#fff" stroke="#2f9e6a"/><text x="360" y="711" text-anchor="middle">Itinerarios</text>
+    <rect x="402" y="694" width="66" height="26" rx="6" fill="#fff" stroke="#2f9e6a"/><text x="435" y="711" text-anchor="middle">Reservas</text>
+  </g>
+  <text x="280" y="742" text-anchor="middle" class="s">Estados de reserva: SIMULADA · PENDIENTE · CONFIRMADA · CANCELADA</text>
+  <text x="280" y="760" text-anchor="middle" class="s">On-demand · cifrado SSE · Point-in-time recovery</text>
+  <line x1="280" y1="602" x2="280" y2="628" stroke="#2f9e6a" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- IAM -->
+  <rect x="560" y="680" width="610" height="100" rx="12" class="box" stroke="#c8443b" stroke-dasharray="5 4"/>
+  <text x="580" y="704" class="h" fill="#c8443b">IAM · MÍNIMO PRIVILEGIO</text>
+  <text x="580" y="726" class="s">• Cada Lambda: solo las acciones DynamoDB que usa sobre la tabla tripplanner-data</text>
+  <text x="580" y="744" class="s">• Rol del Orchestrator: InvokeAgentRuntime solo en Flight/Weather + lambda:InvokeFunction solo en las 4 Lambdas</text>
+  <text x="580" y="762" class="s">• Bucket S3 privado: lectura solo para la distribución CloudFront (OAC) · sin credenciales AWS en el frontend</text>
+
+  <text x="600" y="830" text-anchor="middle" class="s">Infraestructura como código: backend/template.yaml (AWS SAM) · agentcore/agentcore.json (AgentCore CLI + CDK). El frontend nunca accede a DynamoDB directamente.</text>
+</svg>
