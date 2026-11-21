@@ -15,7 +15,14 @@
       "codeLocation": "app/FlightsAgent/",
       "runtimeVersion": "PYTHON_3_14",
       "networkMode": "PUBLIC",
-      "protocol": "A2A"
+      "protocol": "A2A",
+      "description": "Flight Agent: especialista en vuelos (MCP de vuelos Skiplagged).",
+      "envVars": [
+        {
+          "name": "FLIGHTS_RUNTIME_ARN",
+          "value": "arn:aws:bedrock-agentcore:us-east-2:542489916996:runtime/tripplaner_FlightsAgent-0gk2C36EvR"
+        }
+      ]
     },
     {
       "name": "WeatherAgent",
@@ -24,7 +31,14 @@
       "codeLocation": "app/WeatherAgent/",
       "runtimeVersion": "PYTHON_3_14",
       "networkMode": "PUBLIC",
-      "protocol": "A2A"
+      "protocol": "A2A",
+      "description": "Weather Agent: especialista en clima (MCP de clima Open-Meteo).",
+      "envVars": [
+        {
+          "name": "WEATHER_RUNTIME_ARN",
+          "value": "arn:aws:bedrock-agentcore:us-east-2:542489916996:runtime/tripplaner_WeatherAgent-6TkRXe30Aa"
+        }
+      ]
     },
     {
       "name": "OrchestratorAgent",
@@ -35,13 +49,51 @@
       "networkMode": "PUBLIC",
       "protocol": "HTTP",
       "requestHeaderAllowlist": [
+        "Authorization",
         "X-Amzn-Bedrock-AgentCore-Runtime-Custom-Actor-Id"
       ],
       "envVars": [
         {
+          "name": "TRIPS_FUNCTION",
+          "value": "tripplanner-trips"
+        },
+        {
+          "name": "ITINERARIES_FUNCTION",
+          "value": "tripplanner-itineraries"
+        },
+        {
+          "name": "RESERVATIONS_FUNCTION",
+          "value": "tripplanner-reservations"
+        },
+        {
+          "name": "USERS_FUNCTION",
+          "value": "tripplanner-users"
+        },
+        {
+          "name": "FLIGHTS_AGENT_ARN",
+          "value": "arn:aws:bedrock-agentcore:us-east-2:542489916996:runtime/tripplaner_FlightsAgent-0gk2C36EvR"
+        },
+        {
+          "name": "WEATHER_AGENT_ARN",
+          "value": "arn:aws:bedrock-agentcore:us-east-2:542489916996:runtime/tripplaner_WeatherAgent-6TkRXe30Aa"
+        },
+        {
           "name": "TRIP_MEMORY_ID",
-          "value": "tripplaner_TripPlannerMemory-Z0ubr16QhZ"
+          "value": "tripplaner_TripPlannerMemory-Xk1G7GCxbv"
         }
+      ],
+      "description": "Orchestrator: interpreta, decide y coordina Flight/Weather Agents y Tools de negocio (Lambda).",
+      "authorizerType": "CUSTOM_JWT",
+      "authorizerConfiguration": {
+        "customJwtAuthorizer": {
+          "discoveryUrl": "https://cognito-idp.us-east-2.amazonaws.com/us-east-2_q9KOlx6ik/.well-known/openid-configuration",
+          "allowedClients": [
+            "3m98306jko6phmbqjdhg44p7ar"
+          ]
+        }
+      },
+      "additionalPolicies": [
+        "iam-policy.json"
       ]
     }
   ],
@@ -54,19 +106,25 @@
           "type": "USER_PREFERENCE",
           "name": "TravelerPreferences",
           "description": "Preferencias de viaje del usuario (horarios, aerolíneas, asientos).",
-          "namespaceTemplates": ["/preferences/{actorId}/"]
+          "namespaceTemplates": [
+            "/preferences/{actorId}/"
+          ]
         },
         {
           "type": "SUMMARIZATION",
           "name": "SessionSummarizer",
           "description": "Resumen por sesión de planificación de viaje.",
-          "namespaceTemplates": ["/summaries/{actorId}/{sessionId}/"]
+          "namespaceTemplates": [
+            "/summaries/{actorId}/{sessionId}/"
+          ]
         },
         {
           "type": "SEMANTIC",
           "name": "TravelFacts",
           "description": "Hechos relevantes del viaje recuperables por significado.",
-          "namespaceTemplates": ["/facts/{actorId}/"]
+          "namespaceTemplates": [
+            "/facts/{actorId}/"
+          ]
         }
       ]
     }

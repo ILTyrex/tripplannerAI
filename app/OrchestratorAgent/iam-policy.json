@@ -1,0 +1,25 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "InvokeSpecialistAgents",
+      "Effect": "Allow",
+      "Action": ["bedrock-agentcore:InvokeAgentRuntime", "bedrock-agentcore:GetAgentCard"],
+      "Resource": [
+        "arn:aws:bedrock-agentcore:us-east-2:542489916996:runtime/tripplaner_FlightsAgent-*",
+        "arn:aws:bedrock-agentcore:us-east-2:542489916996:runtime/tripplaner_WeatherAgent-*"
+      ]
+    },
+    {
+      "Sid": "InvokeBusinessToolLambdas",
+      "Effect": "Allow",
+      "Action": "lambda:InvokeFunction",
+      "Resource": [
+        "arn:aws:lambda:us-east-2:542489916996:function:tripplanner-trips",
+        "arn:aws:lambda:us-east-2:542489916996:function:tripplanner-itineraries",
+        "arn:aws:lambda:us-east-2:542489916996:function:tripplanner-reservations",
+        "arn:aws:lambda:us-east-2:542489916996:function:tripplanner-users"
+      ]
+    }
+  ]
+}

@@ -37,55 +37,57 @@ class RemoteAgentLifecycleTests(unittest.IsolatedAsyncioTestCase):
         async_client_class.return_value.__aexit__.assert_awaited_once()
 
 
-class FlightWeatherRoutingTests(unittest.IsolatedAsyncioTestCase):
-    @patch("app.OrchestratorAgent.main._invoke_remote_agent", new_callable=AsyncMock)
+class FakeAgent:
+    """Agente Strands simulado: emite texto y, en medio, ejecuta una Tool que publica UI."""
+
+    def __init__(self, tool=None):
+        self.tool = tool
+
+    async def stream_async(self, prompt):
+        yield {"event": {"contentBlockDelta": {"delta": {"text": "Hola, "}}}}
+        if self.tool:
+            await self.tool()
+        yield {"event": {"contentBlockDelta": {"delta": {"text": "aquí tienes."}}}}
+        yield {"event": {"contentBlockStop": {}}}
+
+
+class StreamingEntrypointTests(unittest.IsolatedAsyncioTestCase):
     @patch("app.OrchestratorAgent.main.get_or_create_agent")
-    async def test_direct_flight_query_calls_flights_and_weather_deterministically(
-        self, get_or_create_agent, invoke_remote_agent
-    ):
-        invoke_remote_agent.side_effect = [
-            "20/11/2026 | BAQ -> MAD\n"
-            "LA4157 / LA4907 | LATAM Airlines | salida 20:50 | $720 (más barato)",
-            "Soleado, 29 °C",
-        ]
+    async def test_invoke_streams_status_text_ui_and_done(self, get_or_create_agent):
+        async def tool():
+            orchestrator.ui.status("Flight Agent consultando vuelos…")
+            orchestrator.ui.ui({"type": "flights", "flights": []})
 
-        events = [
-            event
-            async for event in orchestrator.invoke(
-                {"prompt": "Vuelos de BAQ a MAD el 20 de noviembre"},
-                context=None,
-            )
-        ]
+        get_or_create_agent.return_value = FakeAgent(tool)
+        events = [e async for e in orchestrator.invoke({"prompt": "vuelos"}, context=None)]
+        types = [e["type"] for e in events]
 
-        get_or_create_agent.assert_not_called()
-        self.assertEqual(invoke_remote_agent.await_count, 2)
-        self.assertEqual(
-            invoke_remote_agent.await_args_list[0].args,
-            (
-                orchestrator.FLIGHTS_ARN,
-                "Busca vuelos de BAQ a MAD para el 2026-11-20.",
-            ),
-        )
-        self.assertEqual(
-            invoke_remote_agent.await_args_list[1].args,
-            (
-                orchestrator.WEATHER_ARN,
-                "Consulta el pronóstico del clima para MAD el 2026-11-20.",
-            ),
-        )
-        self.assertEqual(
-            events[0]["event"]["contentBlockDelta"]["delta"]["text"],
-            "PLAN DE VIAJE: BAQ -> MAD\n"
-            "Fecha: viernes 20/11/2026\n\n"
-            "IDA - viernes 20/11/2026 (BAQ -> MAD)\n"
-            "LA4157 / LA4907 | LATAM Airlines | salida 20:50 | $720 (más barato)\n\n"
-            "CLIMA EN MAD\n"
-            "  viernes 20/11/2026: Soleado, 29 °C\n\n"
-            "RECOMENDACIÓN\n"
-            "Opción más económica de ida: LA4157 / LA4907 | LATAM Airlines | "
-            "salida 20:50 | $720.\n"
-            "Clima en MAD: viernes 20/11/2026: Soleado, 29 °C",
-        )
+        self.assertEqual(types[0], "status")
+        self.assertIn("ui", types)
+        self.assertEqual(types[-1], "done")
+        self.assertEqual("".join(e["text"] for e in events if e["type"] == "text").strip(), "Hola, aquí tienes.")
+
+    async def test_invoke_rejects_empty_prompt(self):
+        events = [e async for e in orchestrator.invoke({"prompt": "  "}, context=None)]
+        self.assertEqual(events, [{"type": "error", "text": "El mensaje está vacío."}])
+
+    @patch("app.OrchestratorAgent.main.get_or_create_agent")
+    async def test_user_identity_comes_from_jwt_sub(self, get_or_create_agent):
+        import base64
+        import json as _json
+
+        claims = base64.urlsafe_b64encode(_json.dumps({"sub": "abcd1234-0000-1111-2222-333344445555"}).encode()).decode().rstrip("=")
+        context = type("Ctx", (), {"session_id": "s" * 40, "request_headers": {"Authorization": f"Bearer x.{claims}.y"}})()
+        seen = {}
+
+        async def tool():
+            seen["user"] = orchestrator.ui.current_user.get()
+
+        get_or_create_agent.return_value = FakeAgent(tool)
+        _ = [e async for e in orchestrator.invoke({"prompt": "hola"}, context=context)]
+
+        get_or_create_agent.assert_called_once_with("s" * 40, "abcd1234-0000-1111-2222-333344445555")
+        self.assertEqual(seen["user"].user_id, "abcd1234-0000-1111-2222-333344445555")
 
     def test_direct_flight_parser_resolves_supported_date_formats(self):
         self.assertEqual(
@@ -106,8 +108,17 @@ class FlightWeatherRoutingTests(unittest.IsolatedAsyncioTestCase):
 
 
 class OrchestratorPromptTests(unittest.TestCase):
-    def test_prompt_prioritizes_current_trip_and_supports_one_way_search(self):
+    def test_platform_prompt_covers_tools_and_simulated_reservations(self):
         prompt = orchestrator.build_system_prompt()
+
+        for name in ("ask_flights", "ask_weather", "create_trip", "create_itinerary", "create_reservation", "get_trips"):
+            self.assertIn(name, prompt)
+        self.assertIn("SIMULADA", prompt)
+        self.assertIn("Nunca CONFIRMADA", prompt)
+        self.assertIn("NUNCA pidas ni aceptes números de tarjeta", prompt)
+
+    def test_prompt_prioritizes_current_trip_and_supports_one_way_search(self):
+        prompt = orchestrator.build_flight_plan_prompt()
 
         self.assertIn("NUNCA define el origen", prompt)
         self.assertIn("la fecha de la ida", prompt)
@@ -253,13 +264,81 @@ class AskFlightsFallbackTests(unittest.IsolatedAsyncioTestCase):
         )
 
 
-class AskWeatherLoggingTests(unittest.IsolatedAsyncioTestCase):
+class AskWeatherTests(unittest.IsolatedAsyncioTestCase):
     @patch("app.OrchestratorAgent.main._invoke_remote_agent", new_callable=AsyncMock)
-    async def test_ask_weather_logs_and_reraises_remote_failures(self, invoke_remote):
+    async def test_ask_weather_returns_error_json_on_remote_failure(self, invoke_remote):
         invoke_remote.side_effect = RuntimeError("weather runtime unavailable")
 
-        with self.assertRaisesRegex(RuntimeError, "weather runtime unavailable"):
-            await orchestrator.ask_weather("Madrid 2026-10-24")
+        response = await orchestrator.ask_weather("Madrid 2026-10-24")
+
+        self.assertIn("No se pudo consultar el clima", response)
+
+    @patch("app.OrchestratorAgent.main._invoke_remote_agent", new_callable=AsyncMock)
+    async def test_ask_weather_publishes_weather_block(self, invoke_remote):
+        import asyncio
+
+        invoke_remote.return_value = '{"city": "Cartagena", "days": [{"date": "2026-12-10", "tempMax": 31}]}'
+        queue = asyncio.Queue()
+        token = orchestrator.ui.event_queue.set(queue)
+        try:
+            await orchestrator.ask_weather("Cartagena 2026-12-10")
+        finally:
+            orchestrator.ui.event_queue.reset(token)
+        events = [queue.get_nowait() for _ in range(queue.qsize())]
+        blocks = [e["block"] for e in events if e["type"] == "ui"]
+        self.assertEqual(blocks[0]["type"], "weather")
+        self.assertEqual(blocks[0]["city"], "Cartagena")
+
+
+class UiParsingTests(unittest.TestCase):
+    def test_parse_flights_builds_structured_cards(self):
+        block = orchestrator.ui.parse_flights(
+            "10/12/2026 | Bogotá → Cartagena\n"
+            "AV9821 | Avianca | salida 07:15 | $89\n"
+            "LA4410 / LA20 | LATAM | salida 12:40 | $76 (más barato)"
+        )
+        self.assertEqual(block["date"], "2026-12-10")
+        self.assertEqual(block["origin"], "Bogotá")
+        self.assertEqual(len(block["flights"]), 2)
+        cheapest = [f for f in block["flights"] if f["cheapest"]][0]
+        self.assertEqual((cheapest["airline"], cheapest["amount"], cheapest["stops"]), ("LATAM", 76.0, 1))
+
+    def test_parse_flights_keeps_error_message(self):
+        block = orchestrator.ui.parse_flights("No se encontraron vuelos para BOG a XYZ el 10/12/2026.")
+        self.assertEqual(block["flights"], [])
+        self.assertIn("No se encontraron vuelos", block["message"])
+
+    def test_decode_jwt_claims_handles_garbage(self):
+        self.assertEqual(orchestrator.ui.decode_jwt_claims("Bearer nope"), {})
+        self.assertEqual(orchestrator.ui.decode_jwt_claims(None), {})
+
+
+class BusinessToolsTests(unittest.IsolatedAsyncioTestCase):
+    async def test_tools_require_authenticated_user(self):
+        import business_tools
+
+        result = await business_tools.create_trip("Cartagena", "2026-12-10", "2026-12-13")
+        self.assertIn("no autenticado", result)
+
+    async def test_create_trip_invokes_lambda_with_user_from_context(self):
+        import io
+        import json as _json
+        import business_tools
+
+        fake_lambda = unittest.mock.MagicMock()
+        fake_lambda.invoke.return_value = {"Payload": io.BytesIO(_json.dumps({"ok": True, "data": {"tripId": "trip-1"}}).encode())}
+        token = orchestrator.ui.current_user.set(orchestrator.ui.UserContext("user-1234-abcd"))
+        try:
+            with patch.object(business_tools, "_lambda", fake_lambda):
+                result = _json.loads(await business_tools.create_trip("Cartagena", "2026-12-10", "2026-12-13", travelers=3))
+        finally:
+            orchestrator.ui.current_user.reset(token)
+
+        sent = _json.loads(fake_lambda.invoke.call_args.kwargs["Payload"])
+        self.assertEqual(sent["userId"], "user-1234-abcd")
+        self.assertEqual(sent["action"], "create_trip")
+        self.assertEqual(sent["params"]["travelers"], 3)
+        self.assertEqual(result["data"]["tripId"], "trip-1")
 
 
 if __name__ == "__main__":

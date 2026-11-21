@@ -1,108 +1,75 @@
-# AgentCore Project
+# TripPlanner AI · Your AI Travel Companion
 
-This project was created with the [AgentCore CLI](https://github.com/aws/agentcore-cli).
+Trabajo final de **Programación Agéntica**: TripPlanner pasa del Playground de AgentCore a una **plataforma web**
+para planificar y gestionar viajes, sobre una arquitectura distribuida en AWS.
 
-## Project Structure
+- **Multiagente (se conservan los 3 agentes):** Orchestrator Agent (HTTP streaming) → Flight Agent (A2A, MCP de vuelos)
+  y Weather Agent (A2A, MCP de clima), construidos con Strands Agents y desplegados en Amazon Bedrock AgentCore.
+- **Nuevas Tools de negocio:** CreateTrip, GetTrips, UpdateTrip, CreateItinerary, UpdateItinerary, CreateReservation,
+  GetReservations, UpdateReservation (+ detalle de viaje y preferencias), cada una respaldada por AWS Lambda → DynamoDB.
+- **Backend serverless (AWS SAM):** API Gateway (JWT Cognito, CORS, throttling) + Lambda + DynamoDB.
+- **Frontend:** SPA HTML/CSS/JS en S3 + CloudFront con 6 módulos (Dashboard, Asistente, Vuelos, Clima, Mis viajes e
+  itinerarios, Reservas) + Preferencias, Agent-Driven UI y **exportación PDF** (funcionalidad opcional).
+
+![Arquitectura](docs/arquitectura.svg)
+
+## Despliegue actual (us-east-2)
+
+| Componente | Recurso |
+|---|---|
+| Frontend (CloudFront) | https://d3vmzvubx89wb6.cloudfront.net |
+| API Gateway | https://ci97awf0j6.execute-api.us-east-2.amazonaws.com/prod |
+| Orchestrator (AgentCore) | `tripplaner_OrchestratorAgent-Cj0BQ6H0du` (HTTP, CUSTOM_JWT) |
+| Flight / Weather Agent | `tripplaner_FlightsAgent-0gk2C36EvR` / `tripplaner_WeatherAgent-6TkRXe30Aa` (A2A) |
+| DynamoDB | `tripplanner-data` |
+| Stacks | `tripplanner-backend` (SAM) · `AgentCore-tripplaner-final` (AgentCore CDK) |
+
+## Estructura
 
 ```
-my-project/
-├── AGENTS.md               # AI coding assistant context
-├── agentcore/
-│   ├── agentcore.json      # Project config (agents, memories, credentials, gateways, evaluators)
-│   ├── aws-targets.json    # Deployment targets (account + region)
-│   ├── .env.local          # Secrets — API keys (gitignored)
-│   ├── .llm-context/       # TypeScript type definitions for AI assistants
-│   │   ├── agentcore.ts    # AgentCoreProjectSpec types
-│   │   └── aws-targets.ts  # Deployment target types
-│   └── cdk/                # CDK infrastructure (@aws/agentcore-cdk)
-├── app/                    # Agent application code
-└── evaluators/             # Custom evaluator code (if any)
+backend/                 Backend serverless (AWS SAM)
+  template.yaml          DynamoDB, Cognito, Lambdas, HTTP API, S3 + CloudFront, IAM
+  src/                   Lambdas: trips, itineraries, reservations, users, presignup + common
+app/
+  OrchestratorAgent/     Orchestrator (HTTP): main.py, business_tools.py (Tools→Lambda), ui_events.py (SSE/UI)
+  FlightsAgent/          Flight Agent (A2A) + MCP de vuelos (Skiplagged)
+  WeatherAgent/          Weather Agent (A2A) + weather_mcp_server.py (MCP de clima, Open-Meteo)
+agentcore/               Configuración AgentCore (agentcore.json, aws-targets.json, CDK)
+frontend/                SPA: index.html, css/, js/ (auth, api, agent, components, pdf, app)
+docs/                    DOCUMENTACION_TECNICA.md y arquitectura.svg
+scripts/                 deploy_frontend.sh, serve.mjs (servidor local)
+tests/                   Pruebas unitarias (pytest) y backend_smoke.mjs (pruebas del API desplegado)
 ```
 
-## Getting Started
-
-### Prerequisites
-
-- **Node.js** 20.x or later
-- **Python 3.10+** and **uv** for Python agents ([install uv](https://docs.astral.sh/uv/getting-started/installation/))
-- **AWS credentials** configured (`aws configure` or environment variables)
-- **Docker** (only for Container build agents)
-
-### Development
-
-Run your agent locally:
+## Despliegue rápido
 
 ```bash
-agentcore dev
+cd backend && sam deploy && cd ..                 # 1. backend serverless
+agentcore deploy --target final -y                # 2. agentes en AgentCore
+bash scripts/deploy_frontend.sh                   # 3. frontend en S3 + CloudFront
+node tests/backend_smoke.mjs                      # 4. verificación del canal 1
 ```
 
-### Validate Invocation Input
+Detalle completo (modelo de datos, APIs, Lambdas, Tools, integración de agentes, seguridad y pasos desde cero):
+**[docs/DOCUMENTACION_TECNICA.md](docs/DOCUMENTACION_TECNICA.md)**.
 
-Validate runtime invocation payloads before forwarding them to an agent framework. Keep user prompts typed as strings
-and pass only prompt text to the agent.
+## Escenario de demostración
 
-### Deployment
+> “Quiero organizar unas vacaciones de cuatro días en Cartagena. Salgo desde Bogotá, viajo con dos personas más y
+> tengo un presupuesto de 5 millones de pesos. Quiero conocer el clima, encontrar vuelos y organizar algunas
+> actividades turísticas”.
 
-Deploy to AWS:
+1. Ingresar al frontend (CloudFront) e iniciar sesión.
+2. Asistente → enviar la solicitud (botón *Planificar con IA*). Se ven en vivo el Orchestrator, Flight Agent y Weather Agent.
+3. El frontend presenta tarjetas comparativas de vuelos (ida y regreso) y tarjetas de clima por día.
+4. “Crea el viaje con ese plan y genera el itinerario” → CreateTrip + CreateItinerary (agenda por día).
+5. “Reserva el vuelo de ida más barato” → CreateReservation (estado **Simulada**).
+6. Salir, volver a entrar: Dashboard, Mis viajes y Reservas muestran los datos persistidos en DynamoDB.
+7. Mis viajes → detalle → **Exportar PDF**.
+
+## Pruebas
 
 ```bash
-agentcore deploy
+pytest tests                 # 42 pruebas unitarias de agentes, MCP de clima, parsing y Tools
+node tests/backend_smoke.mjs # 15 verificaciones contra el API desplegado (auth, validación, aislamiento, pagos)
 ```
-
-## Commands
-
-| Command | Description |
-| --- | --- |
-| `agentcore create` | Create a new AgentCore project |
-| `agentcore add` | Add resources (agent, memory, credential, gateway, evaluator, policy) |
-| `agentcore remove` | Remove resources |
-| `agentcore dev` | Run agent locally with hot-reload |
-| `agentcore deploy` | Deploy to AWS via CDK |
-| `agentcore status` | Show deployment status |
-| `agentcore invoke` | Invoke agent (local or deployed) |
-| `agentcore logs` | View agent logs |
-| `agentcore traces` | View agent traces |
-| `agentcore eval` | Run evaluations |
-| `agentcore package` | Package agent artifacts |
-| `agentcore validate` | Validate configuration |
-| `agentcore pause` | Pause a deployed agent |
-| `agentcore resume` | Resume a paused agent |
-| `agentcore fetch` | Fetch remote resource definitions |
-| `agentcore import` | Import existing resources |
-| `agentcore update` | Check for CLI updates |
-
-## Configuration
-
-Edit the JSON files in `agentcore/` to configure your project. See `agentcore/.llm-context/` for type definitions and validation constraints.
-
-The project uses a **flat resource model** — agents, memories, credentials, gateways, evaluators, and policies are top-level arrays in `agentcore.json`. Resources are independent; agents discover memories and credentials at runtime via environment variables or SDK calls.
-
-## Resources
-
-| Resource | Purpose |
-| --- | --- |
-| Agent (runtime) | HTTP, MCP, or A2A agent deployed to AgentCore Runtime |
-| Memory | Persistent context storage with configurable strategies |
-| Credential | API key or OAuth credential providers |
-| Gateway | MCP gateway that routes tool calls to targets |
-| Gateway Target | Tool implementation (Lambda, MCP server, OpenAPI, Smithy, API Gateway) |
-| Evaluator | Custom LLM-as-a-Judge or code-based evaluation |
-| Online Eval Config | Continuous evaluation pipeline for deployed agents |
-| Policy | Cedar authorization policies for gateway tools |
-
-### Agent Types
-
-- **Template agents**: Created from framework templates (Strands, LangChain/LangGraph, GoogleADK, OpenAI Agents, Autogen)
-- **BYO agents**: Bring your own code with `agentcore add agent --type byo`
-- **Import agents**: Import existing Bedrock agents with `agentcore import`
-
-### Build Types
-
-- **CodeZip**: Python source packaged as a zip and deployed directly to AgentCore Runtime
-- **Container**: Docker image built via CodeBuild (ARM64), pushed to ECR, and deployed to AgentCore Runtime
-
-## Documentation
-
-- [AgentCore CLI](https://github.com/aws/agentcore-cli)
-- [AgentCore CDK Constructs](https://github.com/aws/agentcore-l3-cdk-constructs)
-- [Amazon Bedrock AgentCore](https://aws.amazon.com/bedrock/agentcore/)
