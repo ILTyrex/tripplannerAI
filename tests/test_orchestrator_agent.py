@@ -290,6 +290,21 @@ class AskWeatherTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(blocks[0]["city"], "Cartagena")
 
 
+class SpecialistSessionTests(unittest.TestCase):
+    def test_parallel_calls_get_distinct_sessions_and_slots_are_reused(self):
+        token = orchestrator.conversation_session.set("tp-" + "a" * 36)
+        try:
+            first = orchestrator._acquire_specialist_session(orchestrator.FLIGHTS_ARN)
+            second = orchestrator._acquire_specialist_session(orchestrator.FLIGHTS_ARN)
+            self.assertNotEqual(first, second)
+            self.assertTrue(first.endswith("-flights-0") and second.endswith("-flights-1"))
+            orchestrator._busy_specialist_sessions.discard(first)
+            self.assertEqual(orchestrator._acquire_specialist_session(orchestrator.FLIGHTS_ARN), first)
+        finally:
+            orchestrator._busy_specialist_sessions.clear()
+            orchestrator.conversation_session.reset(token)
+
+
 class UiParsingTests(unittest.TestCase):
     def test_parse_flights_builds_structured_cards(self):
         block = orchestrator.ui.parse_flights(

@@ -104,23 +104,38 @@ def make_remote_agent(arn: str, http_client: httpx.AsyncClient) -> A2AAgent:
 conversation_session: ContextVar[str | None] = ContextVar("conversation_session", default=None)
 
 
-def _specialist_session_headers(arn: str) -> dict:
-    """Reutiliza la misma sesión del especialista durante la conversación (microVM caliente)."""
+# Sesiones de especialista ocupadas. AgentCore rechaza (409) dos peticiones simultáneas en la
+# misma sesión, así que las llamadas paralelas (p.ej. vuelo de ida y de regreso) usan otra
+# "ranura" (-0, -1, ...). Cada ranura se reutiliza en la conversación y conserva su microVM caliente.
+_busy_specialist_sessions: set[str] = set()
+
+
+def _acquire_specialist_session(arn: str) -> str | None:
     session = conversation_session.get()
     if not session:
-        return {}
+        return None
     suffix = "flights" if arn == FLIGHTS_ARN else "weather"
-    return {"X-Amzn-Bedrock-AgentCore-Runtime-Session-Id": f"{session}-{suffix}"[:100]}
+    slot = 0
+    while (candidate := f"{session}-{suffix}-{slot}"[:100]) in _busy_specialist_sessions:
+        slot += 1
+    _busy_specialist_sessions.add(candidate)
+    return candidate
 
 
 async def _invoke_remote_agent(arn: str, request: str) -> str:
-    async with httpx.AsyncClient(
-        auth=SigV4HttpxAuth(REGION),
-        timeout=httpx.Timeout(90.0),
-        headers=_specialist_session_headers(arn),
-    ) as http_client:
-        remote = make_remote_agent(arn, http_client)
-        return str(await remote.invoke_async(request))
+    specialist_session = _acquire_specialist_session(arn)
+    headers = {"X-Amzn-Bedrock-AgentCore-Runtime-Session-Id": specialist_session} if specialist_session else {}
+    try:
+        async with httpx.AsyncClient(
+            auth=SigV4HttpxAuth(REGION),
+            timeout=httpx.Timeout(90.0),
+            headers=headers,
+        ) as http_client:
+            remote = make_remote_agent(arn, http_client)
+            return str(await remote.invoke_async(request))
+    finally:
+        if specialist_session:
+            _busy_specialist_sessions.discard(specialist_session)
 
 
 @tool

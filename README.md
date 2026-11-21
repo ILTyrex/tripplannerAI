@@ -70,6 +70,6 @@ Detalle completo (modelo de datos, APIs, Lambdas, Tools, integración de agentes
 ## Pruebas
 
 ```bash
-pytest tests                 # 42 pruebas unitarias de agentes, MCP de clima, parsing y Tools
+pytest tests                 # 43 pruebas unitarias de agentes, MCP de clima, parsing y Tools
 node tests/backend_smoke.mjs # 15 verificaciones contra el API desplegado (auth, validación, aislamiento, pagos)
 ```

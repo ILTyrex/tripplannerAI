@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>TripPlanner AI · Documentación técnica</title>
+<meta name="author" content="josedavid019, IlTyrex" />
+<meta name="description" content="Trabajo final · Programación Agéntica" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  @page { @bottom-left { content: "TripPlanner AI · Trabajo final · Programación Agéntica"; font-family: "Plus Jakarta Sans", sans-serif; font-size: 7.5pt; color: #5d7177; } @bottom-right { content: "Página " counter(page) " de " counter(pages); font-family: "Plus Jakarta Sans", sans-serif; font-size: 7.5pt; color: #5d7177; } }
+  @page :first { margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } }
+  :root { --ink:#13262b; --muted:#5d7177; --teal:#0e7c86; --teal-d:#0a6670; --teal-50:#e6f4f5; --sand:#f4a259; --sand-50:#fdf1e5; --line:#dfe6e8; --bg2:#f4f7f8; --ok:#2f9e6a; --ok-50:#e6f5ee; --info:#4561c9; --info-50:#eceffb; --warn:#c98a12; --warn-50:#fbf3e0; --red:#c8443b; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif; color: var(--ink); font-size: 9.6pt; line-height: 1.5; }
+  h1 { font-size: 20pt; font-weight: 800; margin: 0 0 4mm; letter-spacing: -.01em; color: var(--ink); }
+  h1 .n { color: var(--teal); margin-right: 3mm; }
+  h2 { font-size: 12.5pt; font-weight: 800; margin: 6mm 0 2.5mm; color: var(--teal-d); }
+  h3 { font-size: 10.5pt; font-weight: 700; margin: 4mm 0 2mm; }
+  p { margin: 0 0 2.5mm; }
+  svg.ar { width: 1.15em; height: .75em; vertical-align: -.02em; margin: 0 .12em; display: inline-block; }
+  .lead { color: var(--muted); font-size: 10.2pt; margin-bottom: 5mm; }
+  code, .mono { font-family: "JetBrains Mono", Consolas, monospace; font-size: 8.2pt; background: var(--bg2); padding: .2mm 1.2mm; border-radius: 1.2mm; }
+  pre { font-family: "JetBrains Mono", Consolas, monospace; font-size: 8pt; background: #10272c; color: #d9eef0; padding: 3.5mm 4mm; border-radius: 2.5mm; white-space: pre-wrap; margin: 0 0 3mm; line-height: 1.45; break-inside: avoid; }
+  pre .c { color: #7fb7bd; }
+  section { break-before: auto; margin-top: 9mm; }
+  section.page { break-before: page; margin-top: 0; }
+  h1, h2, h3 { break-after: avoid; }
+  figure img.tall { width: auto; max-width: 100%; max-height: 232mm; margin: 0 auto; }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 4mm; font-size: 8.6pt; break-inside: auto; }
+  tr { break-inside: avoid; }
+  th { background: var(--teal); color: #fff; text-align: left; font-weight: 700; padding: 2mm 2.4mm; font-size: 8.2pt; }
+  td { padding: 1.8mm 2.4mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tbody tr:nth-child(even) td { background: #f8fafb; }
+  td code { white-space: nowrap; }
+  th code { background: rgba(255,255,255,.18); color: #fff; }
+  .note { border-left: 1.2mm solid var(--sand); background: var(--sand-50); padding: 3mm 4mm; border-radius: 0 2mm 2mm 0; margin: 3mm 0 4mm; break-inside: avoid; }
+  .note.teal { border-color: var(--teal); background: var(--teal-50); }
+  .note b:first-child { display: block; margin-bottom: 1mm; }
+  .pill { display: inline-block; padding: .4mm 2.4mm; border-radius: 99px; font-size: 7.6pt; font-weight: 700; }
+  .p-ok { background: var(--ok-50); color: var(--ok); } .p-info { background: var(--info-50); color: var(--info); } .p-warn { background: var(--warn-50); color: var(--warn); } .p-teal { background: var(--teal-50); color: var(--teal-d); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  .card { border: 1px solid var(--line); border-radius: 3mm; padding: 3.5mm 4mm; break-inside: avoid; }
+  .card h3 { margin-top: 0; }
+  figure { margin: 0 0 5mm; break-inside: avoid; }
+  figure img { width: 100%; border: 1px solid var(--line); border-radius: 2.5mm; display: block; }
+  figure svg { width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 2.5mm; }
+  figcaption { color: var(--muted); font-size: 8.4pt; margin-top: 1.8mm; text-align: center; }
+  .shots2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  ol.steps { padding-left: 5mm; margin: 0 0 3mm; } ol.steps li { margin: .8mm 0; }
+
+  /* Portada */
+  .cover { height: 297mm; width: 210mm; position: relative; overflow: hidden; background: linear-gradient(160deg, #0b5f67 0%, #0e7c86 45%, #138f99 100%); color: #fff; padding: 24mm 20mm; display: flex; flex-direction: column; }
+  .cover .kicker { font-size: 8.5pt; font-weight: 700; letter-spacing: .18em; opacity: .85; }
+  .cover h1 { color: #fff; font-size: 44pt; margin: 16mm 0 3mm; line-height: 1; }
+  .cover h1 b { color: var(--sand); }
+  .cover .sub { font-size: 15pt; font-weight: 600; opacity: .95; margin-bottom: 6mm; }
+  .cover .desc { font-size: 10.5pt; max-width: 145mm; opacity: .9; }
+  .pass { margin-top: 14mm; background: #fff; color: var(--ink); border-radius: 5mm; display: grid; grid-template-columns: 1fr 52mm; overflow: hidden; border: 1px solid rgba(255,255,255,.6); }
+  .pass .main { padding: 7mm 8mm; }
+  .pass .stub { background: var(--sand-50); border-left: 2px dashed #e5c39f; padding: 7mm 6mm; }
+  .route { display: flex; align-items: center; gap: 6mm; margin-bottom: 5mm; }
+  .route .city b { display: block; font-size: 28pt; font-weight: 800; line-height: 1; color: var(--teal-d); }
+  .route .city span { font-size: 8pt; color: var(--muted); font-weight: 600; }
+  .route .line { flex: 1; height: 0; border-top: 2px dashed #b9cdd0; position: relative; }
+  .route .line svg { position: absolute; left: 50%; top: -4.2mm; transform: translateX(-50%); width: 8mm; height: 8mm; background: #fff; padding: 1mm; }
+  .kv { display: grid; grid-template-columns: 28mm 1fr; gap: 1.6mm 4mm; font-size: 9pt; }
+  .kv dt { color: var(--muted); font-weight: 700; font-size: 7.5pt; letter-spacing: .1em; text-transform: uppercase; padding-top: .5mm; }
+  .kv dd { margin: 0; font-weight: 600; word-break: break-all; }
+  .stub .lbl { font-size: 7pt; font-weight: 700; letter-spacing: .12em; color: #9a5a17; text-transform: uppercase; }
+  .stub .val { font-size: 11pt; font-weight: 800; margin-bottom: 4mm; }
+  .chips { display: flex; gap: 2.5mm; flex-wrap: wrap; margin-top: auto; }
+  .chips span { border: 1px solid rgba(255,255,255,.45); border-radius: 99px; padding: 1.2mm 4mm; font-size: 8.5pt; font-weight: 600; }
+  .cover .deco { position: absolute; right: -30mm; top: -30mm; width: 120mm; height: 120mm; border-radius: 50%; background: rgba(255,255,255,.06); }
+  .cover .deco2 { position: absolute; right: 20mm; top: 30mm; width: 60mm; height: 60mm; border-radius: 50%; background: rgba(244,162,89,.16); }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ PORTADA -->
+<div class="cover">
+  <div class="deco"></div><div class="deco2"></div>
+  <div class="kicker">PROGRAMACIÓN AGÉNTICA · INGENIERÍA DE SISTEMAS · TRABAJO FINAL</div>
+  <h1>TripPlanner <b>AI</b></h1>
+  <div class="sub">Documentación técnica y entregables</div>
+  <div class="desc">Plataforma web multiagente (Strands Agents + Amazon Bedrock AgentCore) con backend serverless
+    (API Gateway, AWS Lambda, Amazon DynamoDB), autenticación con Amazon Cognito y frontend publicado en Amazon S3 + CloudFront.</div>
+  <div class="pass">
+    <div class="main">
+      <div class="route">
+        <div class="city"><b>BOG</b><span>Bogotá</span></div>
+        <div class="line"><svg viewBox="0 0 24 24" fill="#0e7c86"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z" transform="rotate(90 12 12)"/></svg></div>
+        <div class="city" style="text-align:right"><b>CTG</b><span>Cartagena</span></div>
+      </div>
+      <dl class="kv">
+        <dt>Equipo</dt><dd>josedavid019 · IlTyrex</dd>
+        <dt>Fecha</dt><dd>21 de noviembre de 2026</dd>
+        <dt>Aplicación</dt><dd>https://d3vmzvubx89wb6.cloudfront.net</dd>
+        <dt>Repositorio</dt><dd>https://github.com/ILTyrex/tripplannerAI</dd>
+      </dl>
+    </div>
+    <div class="stub">
+      <div class="lbl">Agentes</div><div class="val">3 · Strands</div>
+      <div class="lbl">Tools de negocio</div><div class="val">11 · Lambda</div>
+      <div class="lbl">Región</div><div class="val">us-east-2</div>
+      <div class="lbl">Pruebas</div><div class="val">43 + 15 ✓</div>
+    </div>
+  </div>
+  <div class="chips"><span>Vuelos</span><span>Clima</span><span>Viajes</span><span>Itinerarios</span><span>Reservas</span><span>Exportación PDF</span></div>
+</div>
+
+<!-- ============================================================ ENTREGABLES -->
+<section class="page">
+  <h1>Entregables</h1>
+  <p class="lead">Resumen de los siete entregables que pide el enunciado y dónde encontrar cada uno.</p>
+  <table>
+    <thead><tr><th style="width:6mm">#</th><th>Entregable</th><th>Dónde está</th><th style="width:22mm">Estado</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Aplicación frontend publicada en Amazon S3 (con CloudFront)</td><td><code>https://d3vmzvubx89wb6.cloudfront.net</code></td><td><span class="pill p-ok">Desplegado</span></td></tr>
+      <tr><td>2</td><td>Backend serverless: Lambdas y API Gateway</td><td>Stack AWS SAM <code>tripplanner-backend</code> · 5 funciones · HTTP API con autorizador JWT de Cognito</td><td><span class="pill p-ok">Desplegado</span></td></tr>
+      <tr><td>3</td><td>DynamoDB con persistencia funcional</td><td>Tabla <code>tripplanner-data</code> (modelo en la sección 2)</td><td><span class="pill p-ok">Desplegado</span></td></tr>
+      <tr><td>4</td><td>Diagrama de arquitectura con los dos canales</td><td>Figura 1 de este documento · <code>docs/arquitectura.svg</code></td><td><span class="pill p-teal">Incluido</span></td></tr>
+      <tr><td>5</td><td>Repositorio Git con historial de commits</td><td><code>https://github.com/ILTyrex/tripplannerAI</code> (rama <code>feat/trabajo-final-webapp</code>)</td><td><span class="pill p-ok">Publicado</span></td></tr>
+      <tr><td>6</td><td>Documentación técnica</td><td>Este documento · versión editable: <code>docs/DOCUMENTACION_TECNICA.md</code></td><td><span class="pill p-teal">Incluido</span></td></tr>
+      <tr><td>7</td><td>Demostración funcional en vivo</td><td>Guion de 12 pasos en la sección 9 · evidencias en la sección 11</td><td><span class="pill p-warn">En la sustentación</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Cómo probar la aplicación</h2>
+  <p>Abra <b>https://d3vmzvubx89wb6.cloudfront.net</b> y cree una cuenta con <b>Crear cuenta</b> (la confirmación es automática).
+    En <b>Asistente</b> pulse la primera sugerencia (vacaciones en Cartagena): el Orchestrator consulta en paralelo al
+    Flight Agent y al Weather Agent mediante MCP y muestra tarjetas de vuelos y de clima. Después escriba
+    <i>“Sí, crea el viaje con ese plan y genera el itinerario”</i> y <i>“Reserva el vuelo de ida más barato para los 3”</i>.
+    Cierre sesión y vuelva a entrar: el viaje, el itinerario y la reserva se recuperan desde DynamoDB. En <b>Mis viajes <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> detalle</b>
+    pulse <b>Exportar PDF</b>.</p>
+
+  <h2>Funcionalidad opcional implementada</h2>
+  <p><b>Exportación PDF</b> del viaje: resumen, presupuesto estimado, clima, itinerario día por día y reservas con su estado. Detalle en la sección 10.</p>
+
+  <h2>Verificación</h2>
+  <div class="grid2">
+    <div class="card"><h3>43 pruebas unitarias</h3><p>pytest sobre el Orchestrator (streaming, identidad JWT, parsing de vuelos/clima, Tools), Flight Agent, Weather Agent y el MCP de clima.</p></div>
+    <div class="card"><h3>15 pruebas contra el API desplegado</h3><p><code>tests/backend_smoke.mjs</code>: autenticación, CRUD, validaciones, rechazo de tarjetas, estado CONFIRMADA y aislamiento entre usuarios.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ 1. ARQUITECTURA -->
+<section class="page">
+  <p class="lead">Evolución de TripPlanner (3 agentes Strands sobre Amazon Bedrock AgentCore) a una plataforma web completa: frontend web, backend serverless y persistencia en DynamoDB.</p>
+  <h1><span class="n">1.</span>Arquitectura</h1>
+  <h2>1.1 Diagrama (dos canales independientes)</h2>
+  <figure>{{DIAGRAM}}<figcaption>Figura 1. Arquitectura de TripPlanner AI: dos canales independientes que parten del frontend.</figcaption></figure>
+  <div class="note"><b>API Gateway no está en el canal de streaming</b>El navegador invoca directamente el endpoint <code>/runtimes/&lt;ARN&gt;/invocations</code> de AgentCore con el <i>access token</i> de Cognito. AgentCore lo valida con su autorizador <code>CUSTOM_JWT</code> (discovery URL del User Pool + <code>allowedClients</code>). El endpoint de AgentCore responde CORS, por lo que no se necesita proxy.</div>
+
+  <h2>1.2 Componentes y responsabilidades</h2>
+  <table>
+    <thead><tr><th>Componente</th><th>Responsabilidad</th><th>Implementación</th></tr></thead>
+    <tbody>
+      <tr><td><b>Frontend</b></td><td>Experiencia de usuario, Agent-Driven UI, exportación PDF</td><td>SPA HTML/CSS/JavaScript sin build (<code>frontend/</code>)</td></tr>
+      <tr><td><b>Amazon S3 + CloudFront</b></td><td>Publicación y distribución HTTPS del frontend</td><td>Bucket privado con Origin Access Control, cabeceras HSTS / X-Frame-Options</td></tr>
+      <tr><td><b>Amazon Cognito</b></td><td>Registro, inicio de sesión y emisión de JWT</td><td>User Pool <code>tripplanner-users</code> + cliente público + trigger PreSignUp</td></tr>
+      <tr><td><b>Amazon API Gateway</b></td><td>Expone las operaciones de negocio</td><td>HTTP API (stage <code>prod</code>), autorizador JWT, CORS, throttling, access logs</td></tr>
+      <tr><td><b>AWS Lambda</b></td><td>Lógica de negocio y validaciones</td><td>5 funciones Python 3.13 · arm64 (<code>backend/src</code>)</td></tr>
+      <tr><td><b>Amazon DynamoDB</b></td><td>Persistencia (fuente de verdad)</td><td>Tabla única <code>tripplanner-data</code></td></tr>
+      <tr><td><b>Amazon Bedrock AgentCore</b></td><td>Ejecución de los agentes y memoria</td><td>3 runtimes (1 HTTP + 2 A2A) + 1 Memory con 3 estrategias</td></tr>
+      <tr><td><b>Strands Agents</b></td><td>Comportamiento agéntico y Tools</td><td><code>app/*Agent/main.py</code></td></tr>
+      <tr><td><b>MCP</b></td><td>Herramientas especializadas</td><td>Skiplagged (vuelos, HTTP) y servidor MCP propio sobre Open-Meteo (clima, stdio)</td></tr>
+      <tr><td><b>IAM</b></td><td>Seguridad</td><td>Una política por Lambda, política adicional del Orchestrator, OAC en S3</td></tr>
+      <tr><td><b>AWS SAM / AgentCore CLI</b></td><td>Infraestructura como código</td><td><code>backend/template.yaml</code> · <code>agentcore/agentcore.json</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>1.3 Decisiones de diseño</h2>
+  <table>
+    <thead><tr><th style="width:42%">Decisión</th><th>Justificación</th></tr></thead>
+    <tbody>
+      <tr><td>Se conservan los 3 agentes (Orchestrator, Flight, Weather) comunicados por A2A</td><td>Requisito no negociable. Cada especialista mantiene su MCP; el Orchestrator coordina y agrega 11 Tools de negocio.</td></tr>
+      <tr><td>Las Tools invocan las mismas Lambdas del Canal 1 (<code>lambda:InvokeFunction</code>)</td><td>Una sola implementación de negocio y validación. La identidad (<code>userId</code>) sale del <code>sub</code> del JWT validado por AgentCore, nunca de un argumento del modelo: aunque el LLM se equivoque o reciba una inyección de prompt, no puede tocar datos de otro usuario.</td></tr>
+      <tr><td>Eventos SSE tipados: <code>status</code>, <code>tool</code>, <code>text</code>, <code>ui</code>, <code>data_changed</code>, <code>error</code>, <code>done</code></td><td>Indicadores de procesamiento en tiempo real y tarjetas construidas desde datos estructurados (Agent-Driven UI), no desde texto.</td></tr>
+      <tr><td>Datos visuales emitidos por las Tools, no por el texto del LLM</td><td>Las tarjetas usan la respuesta real del MCP/Lambda. Flight y Weather devuelven la salida de su herramienta tal cual (<code>FlightResponseAgent</code>, <code>WeatherResponseAgent</code>).</td></tr>
+      <tr><td>MCP de clima propio (FastMCP, stdio) sobre Open-Meteo</td><td>El Weather Agent original usaba datos simulados. Open-Meteo es gratuito y sin API key; para fechas fuera de 16 días se usa el histórico del año anterior marcado como “estimado”.</td></tr>
+      <tr><td>Tabla única con <code>PK = USER#&lt;sub&gt;</code></td><td>Aislamiento estructural por usuario, consultas por prefijo sin escaneos, un solo recurso que proteger.</td></tr>
+      <tr><td>Cognito JWT en ambos canales (sin claves AWS en el navegador)</td><td>API Gateway valida el ID token; AgentCore valida el access token (<code>client_id</code>). El navegador solo conoce identificadores públicos.</td></tr>
+      <tr><td>Claude Haiku 4.5 para el Orchestrator, Nova Lite para especialistas</td><td>El Orchestrator genera argumentos estructurados (itinerarios por día) y encadena varias Tools; Haiku 4.5 es más fiable en tool-calling. Los especialistas hacen tareas simples.</td></tr>
+      <tr><td>Sesión del especialista reutilizada por conversación</td><td>El Orchestrator envía <code>X-Amzn-Bedrock-AgentCore-Runtime-Session-Id</code> estable a Flight/Weather para reutilizar el microVM caliente.</td></tr>
+      <tr><td>AWS SAM para backend y hosting</td><td>Infraestructura reproducible con <code>sam deploy</code>; el modelo de datos y los permisos quedan versionados.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>1.4 Memoria no es persistencia</h2>
+  <table>
+    <thead><tr><th></th><th>AgentCore Memory</th><th>DynamoDB</th></tr></thead>
+    <tbody>
+      <tr><td><b>Propósito</b></td><td>Conversar mejor</td><td>Fuente de verdad del negocio</td></tr>
+      <tr><td><b>Contenido</b></td><td>Historial de la sesión, preferencias inferidas (USER_PREFERENCE), hechos (SEMANTIC), resúmenes (SUMMARIZATION)</td><td>Usuarios, preferencias explícitas, viajes, itinerarios, reservas</td></tr>
+      <tr><td><b>Uso</b></td><td>Se recupera como contexto en cada turno (<code>/preferences/{actorId}/</code>, <code>/facts/{actorId}/</code>)</td><td>Se lee y escribe solo mediante Lambdas</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================ 2. DATOS -->
+<section>
+  <h1><span class="n">2.</span>Modelo de datos</h1>
+  <p>Tabla <code>tripplanner-data</code> · PAY_PER_REQUEST · cifrado SSE · Point-in-Time Recovery. Claves: <code>PK</code> (HASH, S) y <code>SK</code> (RANGE, S). Sin índices secundarios: todos los patrones de acceso se resuelven con <code>GetItem</code> o <code>Query</code> sobre la partición del usuario.</p>
+  <table>
+    <thead><tr><th>Entidad</th><th>PK</th><th>SK</th><th>Atributos principales</th></tr></thead>
+    <tbody>
+      <tr><td><b>Usuario</b></td><td><code>USER#&lt;sub&gt;</code></td><td><code>PROFILE</code></td><td>userId, email, name, homeCity, createdAt</td></tr>
+      <tr><td><b>Preferencias</b></td><td><code>USER#&lt;sub&gt;</code></td><td><code>PREFS</code></td><td>budgetLevel, activityTypes[], preferredAirlines[], dietaryRestrictions[], seat, preferredDepartureTime, homeCity, notes</td></tr>
+      <tr><td><b>Viaje</b></td><td><code>USER#&lt;sub&gt;</code></td><td><code>TRIP#&lt;tripId&gt;</code></td><td>tripId, title, origin, destination, startDate, endDate, travelers, budget, currency, preferences[], notes, status</td></tr>
+      <tr><td><b>Itinerario</b></td><td><code>USER#&lt;sub&gt;</code></td><td><code>ITIN#&lt;tripId&gt;</code></td><td>tripId, destination, days[{day, date, title, activities[{time, title, description, location, category, estimatedCost}]}], notes</td></tr>
+      <tr><td><b>Reserva</b></td><td><code>USER#&lt;sub&gt;</code></td><td><code>RES#&lt;reservationId&gt;</code></td><td>reservationId, tripId, tripTitle, type, title, provider, date, time, location, details, quantity, price, currency, status, simulated, confirmationCode</td></tr>
+    </tbody>
+  </table>
+  <p class="muted"><code>&lt;sub&gt;</code> es el identificador inmutable del usuario en Cognito, tomado siempre del token validado. Todos los ítems tienen <code>entityType</code>, <code>createdAt</code> y <code>updatedAt</code>.</p>
+
+  <h2>Estados</h2>
+  <table>
+    <thead><tr><th>Entidad</th><th>Valores</th><th>Reglas</th></tr></thead>
+    <tbody>
+      <tr><td>Viaje <code>status</code></td><td>PLANIFICADO · CONFIRMADO · EN_CURSO · COMPLETADO · CANCELADO</td><td>Se crea en PLANIFICADO.</td></tr>
+      <tr><td>Reserva <code>status</code></td><td><span class="pill p-info">SIMULADA</span> <span class="pill p-warn">PENDIENTE</span> <span class="pill p-ok">CONFIRMADA</span> · CANCELADA</td><td>Se crea SIMULADA con código <code>SIM-XXXXXX</code>. SIMULADA <svg class="ar" viewBox="0 0 18 10" aria-label="↔"><path d="M2 5h14M5 1.5 1.5 5 5 8.5M13 1.5 16.5 5 13 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> PENDIENTE <svg class="ar" viewBox="0 0 18 10" aria-label="↔"><path d="M2 5h14M5 1.5 1.5 5 5 8.5M13 1.5 16.5 5 13 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> CANCELADA libre. CONFIRMADA solo la asigna un proveedor real: la API la rechaza porque no se integra proveedor.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Patrones de acceso</h2>
+  <table>
+    <thead><tr><th>Patrón</th><th>Operación</th></tr></thead>
+    <tbody>
+      <tr><td>Perfil / preferencias</td><td><code>GetItem PK = USER#sub, SK = PROFILE | PREFS</code></td></tr>
+      <tr><td>Listar viajes del usuario</td><td><code>Query PK = USER#sub, SK begins_with TRIP#</code></td></tr>
+      <tr><td>Viaje + itinerario + reservas</td><td><code>GetItem TRIP#id</code> + <code>GetItem ITIN#id</code> + <code>Query RES#</code> filtrando tripId</td></tr>
+      <tr><td>Itinerario de un viaje</td><td><code>GetItem PK = USER#sub, SK = ITIN#tripId</code></td></tr>
+      <tr><td>Reservas (filtros por viaje, estado, tipo)</td><td><code>Query PK = USER#sub, SK begins_with RES#</code> + filtro en Lambda</td></tr>
+      <tr><td>Actualizar reserva</td><td><code>UpdateItem</code> con <code>ConditionExpression attribute_exists(SK)</code></td></tr>
+      <tr><td>Eliminar viaje</td><td><code>BatchWriteItem</code> del viaje, su itinerario y sus reservas</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================ 3. APIS -->
+<section>
+  <h1><span class="n">3.</span>APIs</h1>
+  <p>Base: <code>https://ci97awf0j6.execute-api.us-east-2.amazonaws.com/prod</code>. Todas las rutas requieren <code>Authorization: Bearer &lt;JWT de Cognito&gt;</code>. Formato JSON, fechas <code>YYYY-MM-DD</code>. CORS: origen de CloudFront y <code>http://localhost:5173</code>. Throttling: 20 req/s, ráfaga 50.</p>
+  <table>
+    <thead><tr><th style="width:12mm">Método</th><th>Ruta</th><th>Descripción</th><th>Body / parámetros</th><th>Respuesta</th></tr></thead>
+    <tbody>
+      <tr><td>GET</td><td><code>/me</code></td><td>Perfil (se crea la primera vez)</td><td>—</td><td>200 {profile, preferences}</td></tr>
+      <tr><td>PUT</td><td><code>/me</code></td><td>Actualizar perfil</td><td>name*, homeCity</td><td>200 profile</td></tr>
+      <tr><td>GET</td><td><code>/preferences</code></td><td>Preferencias</td><td>—</td><td>200 preferences</td></tr>
+      <tr><td>PUT</td><td><code>/preferences</code></td><td>Guardar (fusiona)</td><td>campos de preferencias</td><td>200 preferences</td></tr>
+      <tr><td>POST</td><td><code>/trips</code></td><td>Crear viaje</td><td>destination*, startDate*, endDate*, origin, travelers (1-20), budget (mín. 0), currency, title, preferences[], notes</td><td>201 trip</td></tr>
+      <tr><td>GET</td><td><code>/trips</code></td><td>Listar viajes</td><td>?status=</td><td>200 {trips[], count}</td></tr>
+      <tr><td>GET</td><td><code>/trips/{tripId}</code></td><td>Viaje + itinerario + reservas</td><td>—</td><td>200 {trip, itinerary, reservations[]}</td></tr>
+      <tr><td>PUT</td><td><code>/trips/{tripId}</code></td><td>Actualizar viaje</td><td>cualquier campo + status</td><td>200 trip</td></tr>
+      <tr><td>DELETE</td><td><code>/trips/{tripId}</code></td><td>Eliminar viaje con itinerario y reservas</td><td>—</td><td>200 {deleted}</td></tr>
+      <tr><td>POST</td><td><code>/trips/{tripId}/itinerary</code></td><td>Crear itinerario</td><td>days[]*, notes, replace</td><td>201 itinerary</td></tr>
+      <tr><td>PUT</td><td><code>/trips/{tripId}/itinerary</code></td><td>Modificar itinerario</td><td>days[] (completo) · day (un día) · notes</td><td>200 itinerary</td></tr>
+      <tr><td>GET</td><td><code>/trips/{tripId}/itinerary</code></td><td>Consultar itinerario</td><td>—</td><td>200 itinerary</td></tr>
+      <tr><td>POST</td><td><code>/reservations</code></td><td>Registrar reserva (SIMULADA)</td><td>tripId*, type* (FLIGHT/HOTEL/ACTIVITY), title*, date*, time, provider, price, currency, quantity, details</td><td>201 reservation</td></tr>
+      <tr><td>GET</td><td><code>/reservations</code></td><td>Reservas del usuario</td><td>?tripId= &amp;status= &amp;type=</td><td>200 {reservations[], count}</td></tr>
+      <tr><td>PUT</td><td><code>/reservations/{reservationId}</code></td><td>Actualizar reserva / estado / viaje asociado</td><td>status, tripId, title, date, time, price…</td><td>200 reservation</td></tr>
+    </tbody>
+  </table>
+  <h2>Errores</h2>
+  <p>Cuerpo uniforme <code>{"error": {"code": "...", "message": "..."}}</code>, en español y sin detalles internos.</p>
+  <table>
+    <thead><tr><th style="width:14mm">HTTP</th><th>Código</th><th>Cuándo</th><th>Ejemplo de mensaje</th></tr></thead>
+    <tbody>
+      <tr><td>400</td><td>VALIDATION_ERROR</td><td>Tipos, rangos, fechas, estados, JSON inválido, datos de tarjeta, CONFIRMADA sin proveedor</td><td>“La fecha de regreso no puede ser anterior a la de salida.”</td></tr>
+      <tr><td>401</td><td>UNAUTHORIZED</td><td>Sin token o token inválido/expirado</td><td>“Unauthorized”</td></tr>
+      <tr><td>403</td><td>FORBIDDEN</td><td>Invocación directa de Lambda sin <code>source=agent-tool</code></td><td>“Origen de invocación no permitido.”</td></tr>
+      <tr><td>404</td><td>NOT_FOUND</td><td>El recurso no existe o pertenece a otro usuario</td><td>“No existe el viaje … para este usuario.”</td></tr>
+      <tr><td>429</td><td>—</td><td>Throttling de API Gateway</td><td>“Too Many Requests”</td></tr>
+      <tr><td>500</td><td>INTERNAL_ERROR</td><td>Error inesperado (registrado en CloudWatch)</td><td>“Ocurrió un error interno. Intenta de nuevo.”</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================ 4. LAMBDAS -->
+<section>
+  <h1><span class="n">4.</span>Lambdas</h1>
+  <p>Código en <code>backend/src/</code>. Utilidades comunes en <code>common.py</code> (despacho API Gateway / Tool del agente, validación, errores, serialización). Python 3.13 · arm64 · 256 MB · 15 s · X-Ray · logs JSON.</p>
+  <table>
+    <thead><tr><th>Función</th><th>Handler · acciones</th><th>Validaciones</th><th>Permisos IAM (solo sobre <code>tripplanner-data</code>)</th></tr></thead>
+    <tbody>
+      <tr><td><code>tripplanner-trips</code></td><td><code>trips.handler</code> · create / get / list / update / delete trip</td><td>campos requeridos, fechas ISO y orden, duración máx. 60 días, viajeros 1-20, presupuesto mín. 0, moneda y estado permitidos</td><td>GetItem, PutItem, UpdateItem, DeleteItem, Query, BatchWriteItem</td></tr>
+      <tr><td><code>tripplanner-itineraries</code></td><td><code>itineraries.handler</code> · create / update / get itinerary</td><td>viaje existente y propio, nº de días no mayor a la duración, día dentro del rango, hora HH:MM, máx. 15 actividades/día, categoría normalizada</td><td>GetItem, PutItem</td></tr>
+      <tr><td><code>tripplanner-reservations</code></td><td><code>reservations.handler</code> · create / list / update reservation</td><td>tipo permitido (acepta alias en español), fecha dentro del viaje, CONFIRMADA rechazada, hora HH:MM, rechazo de tarjetas</td><td>GetItem, PutItem, UpdateItem, Query</td></tr>
+      <tr><td><code>tripplanner-users</code></td><td><code>users.handler</code> · get / update profile y preferences</td><td>enums de presupuesto/asiento/horario, listas máx. 20, longitudes</td><td>GetItem, PutItem, UpdateItem</td></tr>
+      <tr><td><code>tripplanner-presignup</code></td><td><code>presignup.handler</code> (trigger Cognito)</td><td>auto-confirmación del registro (entorno académico)</td><td>ninguno</td></tr>
+    </tbody>
+  </table>
+  <h2>Reglas transversales (<code>common.py</code>)</h2>
+  <ul>
+    <li><b>Doble origen:</b> evento de API Gateway (usuario = claim <code>sub</code>) o invocación directa <code>{"source":"agent-tool","action","userId","params"}</code> desde el Orchestrator (solo su rol tiene <code>lambda:InvokeFunction</code>).</li>
+    <li><b>Datos de pago prohibidos:</b> se rechazan claves como <code>cvv</code>, <code>card</code>, <code>tarjeta</code> y números de 13–19 dígitos que pasan el algoritmo de Luhn.</li>
+    <li>Cuerpo máx. 64 KB, <code>userId</code> con formato válido, códigos HTTP correctos y mensajes sin trazas.</li>
+  </ul>
+  <div class="note teal"><b>Pruebas</b><code>node tests/backend_smoke.mjs</code> crea dos usuarios en Cognito y ejecuta 15 verificaciones contra el API real, incluido que el usuario B no puede leer ni modificar datos del usuario A (404).</div>
+</section>
+
+<!-- ============================================================ 5. TOOLS -->
+<section>
+  <h1><span class="n">5.</span>Tools</h1>
+  <p>Definidas con <code>@tool</code> de Strands en <code>app/OrchestratorAgent/business_tools.py</code> y <code>main.py</code>. Cada Tool de negocio invoca su Lambda con el <code>sub</code> del usuario autenticado y emite un evento <code>ui</code>.</p>
+  <table>
+    <thead><tr><th>Tool</th><th>Parámetros</th><th>Lambda (acción)</th><th>Evento UI</th></tr></thead>
+    <tbody>
+      <tr><td><b>CreateTrip</b> <code>create_trip</code></td><td>destination, start_date, end_date, origin, travelers, budget, currency, title, preferences, notes</td><td>trips (create_trip)</td><td>trip</td></tr>
+      <tr><td><b>GetTrips</b> <code>get_trips</code></td><td>status</td><td>trips (get_trips)</td><td>trips</td></tr>
+      <tr><td><code>get_trip_details</code></td><td>trip_id</td><td>trips (get_trip)</td><td>trip, itinerary, reservations</td></tr>
+      <tr><td><b>UpdateTrip</b> <code>update_trip</code></td><td>trip_id + campos opcionales</td><td>trips (update_trip)</td><td>trip</td></tr>
+      <tr><td><b>CreateItinerary</b> <code>create_itinerary</code></td><td>trip_id, days[{day, title, activities[]}], notes</td><td>itineraries (create_itinerary)</td><td>itinerary</td></tr>
+      <tr><td><b>UpdateItinerary</b> <code>update_itinerary</code></td><td>trip_id, days[] | day | notes</td><td>itineraries (update_itinerary)</td><td>itinerary</td></tr>
+      <tr><td><b>CreateReservation</b> <code>create_reservation</code></td><td>trip_id, type, title, date, time, provider, location, details, price, currency, quantity, end_date, status</td><td>reservations (create_reservation)</td><td>reservation</td></tr>
+      <tr><td><b>GetReservations</b> <code>get_reservations</code></td><td>trip_id, status, type</td><td>reservations (get_reservations)</td><td>reservations</td></tr>
+      <tr><td><b>UpdateReservation</b> <code>update_reservation</code></td><td>reservation_id + campos opcionales</td><td>reservations (update_reservation)</td><td>reservation</td></tr>
+      <tr><td><code>get_user_preferences</code></td><td>—</td><td>users (get_preferences)</td><td>—</td></tr>
+      <tr><td><code>save_user_preferences</code></td><td>activity_types, budget_level, preferred_airlines, dietary_restrictions, seat, preferred_departure_time, home_city, notes</td><td>users (update_preferences)</td><td>preferences</td></tr>
+      <tr><td><code>ask_flights</code></td><td>request</td><td>— (A2A <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Flight Agent <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> MCP de vuelos)</td><td>flights</td></tr>
+      <tr><td><code>ask_weather</code></td><td>request</td><td>— (A2A <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Weather Agent <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> MCP de clima)</td><td>weather</td></tr>
+    </tbody>
+  </table>
+  <h2>Herramientas MCP de los especialistas</h2>
+  <table>
+    <thead><tr><th>Agente</th><th>Servidor MCP</th><th>Herramientas</th></tr></thead>
+    <tbody>
+      <tr><td>Flight Agent</td><td><code>https://mcp.skiplagged.com/mcp</code> (streamable HTTP, sin API key)</td><td>sk_resolve_iata, sk_flights_search</td></tr>
+      <tr><td>Weather Agent</td><td><code>app/WeatherAgent/weather_mcp_server.py</code> (FastMCP stdio sobre Open-Meteo: geocodificación, pronóstico y archivo histórico)</td><td>get_weather_forecast (temperatura máx/mín, condición, % de lluvia, precipitación)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================ 6. INTEGRACIÓN -->
+<section>
+  <h1><span class="n">6.</span>Integración de agentes</h1>
+  <h2>6.1 Frontend <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> AgentCore (HTTP streaming)</h2>
+  <ol class="steps">
+    <li>El usuario inicia sesión en Cognito (<code>InitiateAuth USER_PASSWORD_AUTH</code>) <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> ID token y access token.</li>
+    <li><code>POST https://bedrock-agentcore.us-east-2.amazonaws.com/runtimes/&lt;ARN&gt;/invocations?qualifier=DEFAULT</code> con <code>Authorization: Bearer &lt;access token&gt;</code>, cabecera <code>X-Amzn-Bedrock-AgentCore-Runtime-Session-Id</code> (id de conversación estable, mín. 33 caracteres) y cuerpo <code>{"prompt": "..."}</code>.</li>
+    <li>AgentCore valida el JWT y reenvía <code>Authorization</code> al runtime (está en <code>requestHeaderAllowlist</code>); el Orchestrator toma el <code>sub</code> como identidad.</li>
+    <li>La respuesta es <code>text/event-stream</code>; <code>frontend/js/agent.js</code> lee el <code>ReadableStream</code> y procesa cada evento:</li>
+  </ol>
+  <table>
+    <thead><tr><th>Evento</th><th>Uso en la UI</th></tr></thead>
+    <tbody>
+      <tr><td><code>{"type":"status","text":"Flight Agent consultando vuelos (MCP de vuelos)…"}</code></td><td>Línea de estado con indicador animado</td></tr>
+      <tr><td><code>{"type":"tool","name":"ask_weather"}</code></td><td>Chips de agentes / Tools activos</td></tr>
+      <tr><td><code>{"type":"text","text":"..."}</code></td><td>Texto incremental con cursor</td></tr>
+      <tr><td><code>{"type":"ui","block":{"type":"flights",...}}</code></td><td>Componente visual (ver tabla)</td></tr>
+      <tr><td><code>{"type":"data_changed","entity":"trips"}</code></td><td>Refresca listados del Canal 1</td></tr>
+      <tr><td><code>{"type":"error","text":"..."}</code> / <code>{"type":"done"}</code></td><td>Mensaje de error / fin</td></tr>
+    </tbody>
+  </table>
+  <table>
+    <thead><tr><th>Bloque</th><th>Componente (<code>frontend/js/components.js</code>)</th></tr></thead>
+    <tbody>
+      <tr><td>flights</td><td>Tarjetas comparativas: aerolínea, hora de salida, escalas, código de vuelo, precio, diferencia con el más barato y botón “Reservar (simulada)”</td></tr>
+      <tr><td>weather</td><td>Tarjeta por día: condición con icono, máx/mín, barra de probabilidad de lluvia, marca “Est.” si es histórico</td></tr>
+      <tr><td>trip / trips</td><td>Tarjeta de viaje: destino, fechas, origen, viajeros, presupuesto, estado y días restantes</td></tr>
+      <tr><td>itinerary</td><td>Agenda por día con horario, categoría, lugar y costo estimado</td></tr>
+      <tr><td>reservation / reservations</td><td>Listado con estado Simulada / Pendiente / Confirmada / Cancelada y código</td></tr>
+      <tr><td>preferences</td><td>Resumen de preferencias guardadas</td></tr>
+    </tbody>
+  </table>
+  <h2>6.2 Orchestrator <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> especialistas (A2A) <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> MCP</h2>
+  <p><code>ask_flights</code> / <code>ask_weather</code> usan <code>A2AAgent</code> de Strands con un cliente <code>httpx</code> firmado con SigV4 (rol del runtime; permiso en <code>iam-policy.json</code>). Cada especialista usa su <code>MCPClient</code> de Strands y devuelve la salida autoritativa de su herramienta; el Orchestrator la convierte en evento <code>ui</code> (<code>parse_flights</code>, <code>parse_weather</code>).</p>
+  <h2>6.3 Orchestrator <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Tools de negocio <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Lambda</h2>
+  <pre>Usuario: "Crea mi viaje" <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Orchestrator decide create_trip
+  <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> lambda:Invoke tripplanner-trips {"source":"agent-tool","action":"create_trip","userId":&lt;sub del JWT&gt;}
+  <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Lambda valida y escribe en DynamoDB <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> {"ok": true, "data": trip}
+  <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> la Tool emite {"type":"ui","block":{"type":"trip"}} <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> el agente redacta la respuesta <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> la UI pinta la tarjeta</pre>
+  <h2>6.4 Memoria</h2>
+  <p><code>AgentCoreMemorySessionManager</code> con <code>actor_id = sub</code> de Cognito y <code>session_id</code> = id de conversación. Recupera <code>/preferences/{actorId}/</code> y <code>/facts/{actorId}/</code> en cada turno; la estrategia SUMMARIZATION resume cada sesión. Las preferencias explícitas viven en DynamoDB y el agente las consulta con <code>get_user_preferences</code>.</p>
+</section>
+
+<!-- ============================================================ 7. SEGURIDAD -->
+<section>
+  <h1><span class="n">7.</span>Seguridad</h1>
+  <table>
+    <thead><tr><th style="width:38mm">Requisito</th><th>Implementación</th></tr></thead>
+    <tbody>
+      <tr><td><b>IAM de mínimo privilegio</b></td><td>Cada Lambda solo tiene las acciones DynamoDB que usa, sobre una tabla. El rol del Orchestrator solo puede invocar los runtimes Flight/Weather y las 4 Lambdas de negocio (<code>app/OrchestratorAgent/iam-policy.json</code>). El bucket S3 solo acepta lecturas de la distribución CloudFront (OAC).</td></tr>
+      <tr><td><b>Sin credenciales en el frontend</b></td><td><code>config.js</code> solo contiene identificadores públicos (región, URL del API, ClientId, ARN del Orchestrator). Ninguna clave AWS en el navegador.</td></tr>
+      <tr><td><b>Validación en Lambda</b></td><td>Tipos, rangos, fechas, estados, tamaños y formatos (sección 4).</td></tr>
+      <tr><td><b>Control de acceso por usuario</b></td><td><code>userId = sub</code> del token validado por API Gateway o AgentCore; claves <code>PK = USER#sub</code>. Recurso ajeno <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> 404 (probado).</td></tr>
+      <tr><td><b>Protección de APIs</b></td><td>Autorizador JWT de Cognito, CORS restringido a CloudFront (+ localhost:5173), throttling 20/50, access logs. AgentCore con autorizador <code>CUSTOM_JWT</code>.</td></tr>
+      <tr><td><b>Manejo de errores</b></td><td>400/401/403/404/429/500 con mensajes claros, sin trazas (registradas en CloudWatch).</td></tr>
+      <tr><td><b>Sin datos de tarjeta</b></td><td>No existen campos de pago; las Lambdas rechazan tarjetas (Luhn) y claves como <code>cvv</code>; el prompt del agente prohíbe pedirlos.</td></tr>
+      <tr><td><b>Transporte y cabeceras</b></td><td>HTTPS en CloudFront (redirección), API Gateway y AgentCore; HSTS, <code>X-Frame-Options: DENY</code>, <code>nosniff</code>.</td></tr>
+      <tr><td><b>Contenido del modelo</b></td><td>El frontend escapa todo el HTML antes de aplicar el Markdown mínimo (sin XSS).</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================ 8. EJECUCIÓN -->
+<section>
+  <h1><span class="n">8.</span>Instrucciones de ejecución</h1>
+  <h2>Requisitos</h2>
+  <p>AWS CLI v2 con credenciales (us-east-2), AWS SAM CLI (<code>uv tool install aws-sam-cli</code>), Node.js 20+, AgentCore CLI, <code>uv</code>. Acceso en Bedrock a Claude Haiku 4.5 y Amazon Nova Lite.</p>
+  <h2>Paso 1 · Backend serverless (SAM)</h2>
+  <pre>cd backend
+sam validate --lint
+sam deploy            <span class="c"># samconfig.toml: stack tripplanner-backend, us-east-2</span></pre>
+  <p>Salidas usadas después: <code>UserPoolId</code>, <code>UserPoolClientId</code>, <code>CognitoDiscoveryUrl</code>, <code>ApiUrl</code>, <code>FrontendUrl</code>.</p>
+  <h2>Paso 2 · Agentes (AgentCore)</h2>
+  <ol class="steps">
+    <li>En <code>agentcore/aws-targets.json</code> definir el target con la cuenta (en este repositorio: <code>final</code>).</li>
+    <li>En <code>agentcore/agentcore.json</code> <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> <code>OrchestratorAgent.authorizerConfiguration</code>: <code>discoveryUrl</code> y <code>allowedClients</code> del paso 1. Ajustar la cuenta en <code>app/OrchestratorAgent/iam-policy.json</code>.</li>
+    <li><code>agentcore deploy --target final -y</code></li>
+    <li>Copiar de <code>agentcore/.cli/deployed-state.json</code> los ARNs de Flight/Weather y el <code>memoryId</code> a los <code>envVars</code> (<code>FLIGHTS_AGENT_ARN</code>, <code>WEATHER_AGENT_ARN</code>, <code>TRIP_MEMORY_ID</code>, <code>FLIGHTS_RUNTIME_ARN</code>, <code>WEATHER_RUNTIME_ARN</code>) y volver a desplegar.</li>
+  </ol>
+  <h2>Paso 3 · Frontend (S3 + CloudFront)</h2>
+  <pre>bash scripts/deploy_frontend.sh   <span class="c"># genera config.js, sincroniza con S3 e invalida CloudFront</span></pre>
+  <h2>Desarrollo local y pruebas</h2>
+  <pre>node scripts/serve.mjs            <span class="c"># frontend local en http://localhost:5173 (usa el despliegue AWS)</span>
+node tests/backend_smoke.mjs      <span class="c"># 15 verificaciones del Canal 1</span>
+pytest tests                      <span class="c"># 43 pruebas unitarias de agentes, MCP y Tools</span></pre>
+  <h2>Recursos desplegados</h2>
+  <table>
+    <thead><tr><th>Recurso</th><th>Identificador</th></tr></thead>
+    <tbody>
+      <tr><td>Frontend</td><td><code>https://d3vmzvubx89wb6.cloudfront.net</code></td></tr>
+      <tr><td>API Gateway</td><td><code>https://ci97awf0j6.execute-api.us-east-2.amazonaws.com/prod</code></td></tr>
+      <tr><td>Orchestrator Agent</td><td><code>tripplaner_OrchestratorAgent-Cj0BQ6H0du</code> (HTTP · CUSTOM_JWT)</td></tr>
+      <tr><td>Flight Agent / Weather Agent</td><td><code>tripplaner_FlightsAgent-0gk2C36EvR</code> / <code>tripplaner_WeatherAgent-6TkRXe30Aa</code> (A2A)</td></tr>
+      <tr><td>Memoria</td><td><code>tripplaner_TripPlannerMemory-Xk1G7GCxbv</code></td></tr>
+      <tr><td>DynamoDB</td><td><code>tripplanner-data</code></td></tr>
+      <tr><td>Stacks</td><td><code>tripplanner-backend</code> (SAM) · <code>AgentCore-tripplaner-final</code> (AgentCore CDK)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+
+<section>
+  <h1><span class="n">9.</span>Escenario de demostración</h1>
+  <div class="note teal"><b>Prompt</b>“Quiero organizar unas vacaciones de cuatro días en Cartagena. Salgo desde Bogotá, viajo con dos personas más y tengo un presupuesto de 5 millones de pesos. Quiero conocer el clima, encontrar vuelos y organizar algunas actividades turísticas”.</div>
+  <table>
+    <thead><tr><th style="width:9mm">Paso</th><th>Qué ocurre</th><th>Dónde se ve</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Registro / inicio de sesión</td><td>Pantalla de acceso (Cognito)</td></tr>
+      <tr><td>2</td><td>Se envía el prompt (primera sugerencia del chat)</td><td>Asistente, HTTP streaming</td></tr>
+      <tr><td>3</td><td>El Orchestrator interpreta: 3 viajeros, 5.000.000 COP y propone fechas</td><td>“El Orchestrator está interpretando tu solicitud…”</td></tr>
+      <tr><td>4</td><td>Flight Agent consulta vuelos de ida y regreso vía MCP</td><td>Chip “Flight Agent” activo</td></tr>
+      <tr><td>5</td><td>Weather Agent consulta el clima vía MCP Open-Meteo</td><td>Chip “Weather Agent” activo</td></tr>
+      <tr><td>6</td><td>Tarjetas de vuelos y de clima + resumen frente al presupuesto</td><td>Chat (Agent-Driven UI)</td></tr>
+      <tr><td>7</td><td>Usuario: “Sí, crea el viaje con ese plan y genera el itinerario”</td><td>Chat</td></tr>
+      <tr><td>8</td><td><code>create_trip</code> + <code>create_itinerary</code></td><td>Tarjeta de viaje + agenda por día</td></tr>
+      <tr><td>9</td><td>Usuario: “Reserva el vuelo de ida más barato para los 3” <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> <code>create_reservation</code></td><td>Reserva con estado <span class="pill p-info">Simulada</span></td></tr>
+      <tr><td>10</td><td>Datos en DynamoDB</td><td>Consola DynamoDB <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> <code>tripplanner-data</code></td></tr>
+      <tr><td>11</td><td>Cerrar sesión</td><td>Botón “Salir”</td></tr>
+      <tr><td>12</td><td>Volver a entrar y recuperar los datos</td><td>Dashboard, Mis viajes <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> detalle, Reservas</td></tr>
+    </tbody>
+  </table>
+  <div class="note teal"><b>Primera consulta</b>La primera llamada de una conversación tarda 20–40 s (arranque en frío de los microVM de AgentCore). Las siguientes reutilizan la sesión del especialista y son más rápidas.</div>
+  <p>El flujo completo se ejecutó sobre la infraestructura desplegada; las capturas de la sección 11 corresponden a esa ejecución.</p>
+</section>
+
+<!-- ============================================================ 10. OPCIONAL -->
+<section class="page">
+  <h1><span class="n">10.</span>Funcionalidad opcional implementada</h1>
+  <table>
+    <thead><tr><th style="width:30mm">Funcionalidad</th><th>Cómo funciona</th><th style="width:38mm">Dónde verla</th></tr></thead>
+    <tbody>
+      <tr><td><b>Exportación PDF</b></td><td>Se genera 100 % en el navegador con jsPDF + AutoTable a partir de los datos persistidos. Incluye: encabezado con ruta y fechas, resumen del viaje, presupuesto estimado (actividades + reservas frente al presupuesto, disponible), clima del destino si fue consultado, itinerario día a día con horarios, lugares y costos, y reservas con tipo, proveedor, precio, estado y código. Pie de página con fecha y numeración. No se envía a ningún servicio externo.</td><td>Mis viajes <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> detalle <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> “Exportar PDF” (<code>frontend/js/pdf.js</code>)</td></tr>
+    </tbody>
+  </table>
+  <p>Archivo de ejemplo generado durante la demostración: <code>docs/evidencias/ejemplo-exportacion-viaje.pdf</code>.</p>
+  <h2>Otras capacidades adicionales</h2>
+  <ul>
+    <li><b>Preferencias persistentes</b> editables en la UI y desde el chat (<code>save_user_preferences</code>), usadas por el Orchestrator para personalizar.</li>
+    <li><b>Edición manual del itinerario</b>: agregar o eliminar actividades por día (Canal 1).</li>
+    <li><b>Reserva desde la tarjeta de vuelo</b>: el botón “Reservar (simulada)” precarga aerolínea, hora, precio y viaje.</li>
+    <li><b>Diseño responsive</b> con navegación inferior en móvil.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ 11. EVIDENCIAS -->
+<section class="page">
+  <h1><span class="n">11.</span>Evidencias de la interfaz</h1>
+  <p class="lead">Capturas de la aplicación con datos reales devueltos por los agentes desplegados en AWS.</p>
+  <div class="shots2">
+    <figure><img src="evidencias/01-login.png" /><figcaption>Acceso con Amazon Cognito.</figcaption></figure>
+    <figure><img src="evidencias/03-streaming-agentes.png" /><figcaption>Streaming: Orchestrator delegando en Flight y Weather Agent.</figcaption></figure>
+  </div>
+  <figure><img src="evidencias/05-vuelos-2.png" /><figcaption>Agent-Driven UI: tarjetas comparativas de vuelos de ida Bogotá <svg class="ar" viewBox="0 0 16 10" aria-label="→"><path d="M1 5h12M9 1.5 13 5 9 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Cartagena (MCP de vuelos), el más barato destacado.</figcaption></figure>
+  <figure><img src="evidencias/06-clima.png" /><figcaption>Tarjetas de clima por día con probabilidad de lluvia (MCP de clima · Open-Meteo).</figcaption></figure>
+
+  <figure><img src="evidencias/04-resumen-orchestrator.png" /><figcaption>Respuesta del Orchestrator: vuelos más baratos, total para 3 viajeros y comparación con el presupuesto.</figcaption></figure>
+  <figure><div class="shots2" style="align-items:start"><img src="evidencias/07a-viaje-itinerario.png" /><img src="evidencias/07b-viaje-itinerario.png" /></div><figcaption>CreateTrip + CreateItinerary: viaje guardado y agenda por día (respuesta completa del chat en dos columnas).</figcaption></figure>
+
+  <figure><img src="evidencias/08-reserva-chat.png" /><figcaption>CreateReservation: reserva registrada con estado “Simulada”.</figcaption></figure>
+  <figure><img src="evidencias/09-dashboard-recuperado.png" /><figcaption>Tras cerrar sesión y volver a entrar: el Dashboard recupera el viaje y la reserva desde DynamoDB.</figcaption></figure>
+
+  <figure><img class="tall" src="evidencias/10-detalle-viaje.png" /><figcaption>Detalle del viaje: itinerario editable, reservas, clima y exportación PDF.</figcaption></figure>
+
+  <figure><img src="evidencias/11-reservas.png" /><figcaption>Gestión de reservas con estados Simulada / Pendiente / Confirmada y filtros.</figcaption></figure>
+  <div class="shots2" style="grid-template-columns: 1.6fr 1fr; align-items:start">
+    <figure><img src="evidencias/12-mis-viajes.png" /><figcaption>Mis viajes.</figcaption></figure>
+    <figure><img src="evidencias/13-movil-dashboard.png" style="max-height:120mm; width:auto; margin:auto" /><figcaption>Versión móvil.</figcaption></figure>
+  </div>
+</section>
+
+</body>
+</html>
